@@ -94,8 +94,28 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
       ),
 
       GoRoute(
-        path: '/tenant-match-placeholder',
-        builder: (context, state) => TenantMatchPlaceholderScreen(draft: draft),
+        path: '/tenant-match',
+        builder: (context, state) => TenantMatchScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/tenant-match-confirm',
+        builder: (context, state) => TenantMatchConfirmScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/tenant-match-missing',
+        builder: (context, state) => TenantMatchMissingScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/tenancy-role',
+        builder: (context, state) => TenancyRoleScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/tenancy-members-review',
+        builder: (context, state) => TenancyMembersReviewScreen(draft: draft),
       ),
       GoRoute(
         path: '/invite-members',

@@ -41,6 +41,16 @@ class AccessDraft {
 
   final List<String> detectedTenantNames = [];
 
+  // Tenancy identity matching
+  String? matchedTenantName;
+
+  bool tenancyIdentityConfirmed = false;
+  bool namedTenantVerified = false;
+
+  /// Housely product permission only.
+  /// This does not represent extra legal tenancy rights.
+  bool homeSetupAdmin = false;
+
   // Members
   final List<String> invites = [];
 

@@ -1031,7 +1031,11 @@ class _UploadTenancyScreenState extends State<UploadTenancyScreen> {
         ..tenancyDocumentName = null
         ..tenancyDocumentType = null
         ..tenancyDocumentSizeBytes = null
-        ..tenancyProcessingComplete = false;
+        ..tenancyProcessingComplete = false
+        ..matchedTenantName = null
+        ..tenancyIdentityConfirmed = false
+        ..namedTenantVerified = false
+        ..homeSetupAdmin = false;
 
       widget.draft.detectedTenantNames.clear();
     });
@@ -1214,7 +1218,11 @@ class _TenancyProcessingScreenState extends State<TenancyProcessingScreen> {
 
     if (!mounted) return;
 
-    widget.draft.tenancyProcessingComplete = true;
+    widget.draft
+      ..matchedTenantName = null
+      ..tenancyIdentityConfirmed = false
+      ..namedTenantVerified = false
+      ..homeSetupAdmin = false;
 
     widget.draft.detectedTenantNames
       ..clear()
@@ -1325,7 +1333,7 @@ class DetectedTenantsScreen extends StatelessWidget {
           label: _hasDetectedNames ? 'Review my match' : 'Continue setup',
           onPressed: () {
             if (_hasDetectedNames) {
-              context.replace('/tenant-match-placeholder');
+              context.replace('/tenant-match');
             } else {
               context.replace('/invite-members');
             }
@@ -1357,32 +1365,360 @@ class DetectedTenantsScreen extends StatelessWidget {
   }
 }
 
-class TenantMatchPlaceholderScreen extends StatelessWidget {
-  const TenantMatchPlaceholderScreen({required this.draft, super.key});
+class TenantMatchScreen extends StatefulWidget {
+  const TenantMatchScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  @override
+  State<TenantMatchScreen> createState() => _TenantMatchScreenState();
+}
+
+class _TenantMatchScreenState extends State<TenantMatchScreen> {
+  String? _selectedName;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _selectedName = widget.draft.matchedTenantName;
+  }
+
+  bool _looksLikeCurrentUser(String tenantName) {
+    final accountName = widget.draft.name.trim().toLowerCase();
+
+    if (accountName.isEmpty) return false;
+
+    final documentName = tenantName.trim().toLowerCase();
+
+    return accountName == documentName ||
+        documentName.contains(accountName) ||
+        accountName.contains(documentName);
+  }
+
+  void _continue() {
+    if (_selectedName == null) return;
+
+    widget.draft.matchedTenantName = _selectedName;
+
+    context.replace('/tenant-match-confirm');
+  }
+
+  @override
+  Widget build(BuildContext context) => AccessScaffold(
+    eyebrow: 'Tenancy',
+    title: 'Which name is yours?',
+    message: 'Choose the name that represents you on the tenancy agreement.',
+    onBack: () => context.go('/tenancy-detected'),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final name in widget.draft.detectedTenantNames) ...[
+          HouselySelectionTile(
+            title: name,
+            subtitle: _looksLikeCurrentUser(name)
+                ? 'Likely match with your Housely profile'
+                : 'Named on the tenancy',
+            icon: _looksLikeCurrentUser(name)
+                ? Icons.person_search_outlined
+                : Icons.person_outline_rounded,
+            selected: _selectedName == name,
+            onTap: () {
+              setState(() {
+                _selectedName = name;
+              });
+            },
+          ),
+
+          const SizedBox(height: HouselySpace.sm),
+        ],
+
+        const SizedBox(height: HouselySpace.md),
+
+        const HouselyPrivacyNotice(
+          title: 'You stay in control',
+          message:
+              'Housely can suggest a likely match from your name, but it will never confirm the match without you.',
+        ),
+
+        const SizedBox(height: HouselySpace.xl),
+
+        HouselyButton(
+          label: 'Continue',
+          state: _selectedName != null
+              ? HouselyComponentState.idle
+              : HouselyComponentState.disabled,
+          onPressed: _selectedName != null ? _continue : null,
+        ),
+
+        const SizedBox(height: HouselySpace.sm),
+
+        HouselyButton(
+          label: 'None of these are me',
+          style: HouselyButtonStyle.text,
+          onPressed: () {
+            widget.draft.matchedTenantName = null;
+
+            context.replace('/tenant-match-missing');
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+class TenantMatchConfirmScreen extends StatelessWidget {
+  const TenantMatchConfirmScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  void _confirm(BuildContext context) {
+    if (draft.matchedTenantName == null) {
+      context.go('/tenant-match');
+      return;
+    }
+
+    draft
+      ..tenancyIdentityConfirmed = true
+      ..namedTenantVerified = true;
+
+    context.replace('/tenancy-role');
+  }
+
+  @override
+  Widget build(BuildContext context) => AccessScaffold(
+    eyebrow: 'Tenancy',
+    title: 'Confirm this is you',
+    message:
+        'Make sure the selected tenancy name belongs to you before continuing.',
+    onBack: () => context.go('/tenant-match'),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        HouselySurface(
+          child: Row(
+            children: [
+              const Icon(Icons.person_outline_rounded, size: 32),
+
+              const SizedBox(width: HouselySpace.md),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      draft.matchedTenantName ?? 'No name selected',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+
+                    const SizedBox(height: 2),
+
+                    Text(
+                      'Named on tenancy',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: HouselySpace.lg),
+
+        const HouselyPrivacyNotice(
+          title: 'What this confirmation means',
+          message:
+              'You are confirming that this tenancy name belongs to your Housely account. This does not create or change any legal tenancy rights.',
+        ),
+
+        const SizedBox(height: HouselySpace.xl),
+
+        HouselyButton(
+          label: 'Yes, this is me',
+          onPressed: () => _confirm(context),
+        ),
+
+        const SizedBox(height: HouselySpace.sm),
+
+        HouselyButton(
+          label: 'Choose another name',
+          style: HouselyButtonStyle.text,
+          onPressed: () => context.go('/tenant-match'),
+        ),
+      ],
+    ),
+  );
+}
+
+class TenantMatchMissingScreen extends StatelessWidget {
+  const TenantMatchMissingScreen({required this.draft, super.key});
 
   final AccessDraft draft;
 
   @override
   Widget build(BuildContext context) => AccessScaffold(
     eyebrow: 'Tenancy',
-    title: 'Identity review comes next',
-    message: 'The next step will confirm which tenancy name belongs to you.',
-    onBack: () => context.go('/tenancy-detected'),
+    title: 'We couldn’t match your name',
+    message:
+        'That’s okay. It may be a different document, a name variation, or you may not be named on this agreement.',
+    onBack: () => context.go('/tenant-match'),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const HouselyPrivacyNotice(
-          title: 'Not verified yet',
+        const HouselyMessageState(
+          kind: HouselyMessageKind.empty,
+          title: 'No confirmed match',
           message:
-              'A name match alone does not prove legal identity or tenancy status.',
+              'Housely will not mark you as a verified named tenant unless you confirm a matching tenancy name.',
         ),
 
         const SizedBox(height: HouselySpace.xl),
 
         HouselyButton(
-          label: 'Back to detected tenants',
+          label: 'Review names again',
+          onPressed: () => context.go('/tenant-match'),
+        ),
+
+        const SizedBox(height: HouselySpace.sm),
+
+        HouselyButton(
+          label: 'Continue without verification',
           style: HouselyButtonStyle.secondary,
-          onPressed: () => context.go('/tenancy-detected'),
+          onPressed: () {
+            draft
+              ..matchedTenantName = null
+              ..tenancyIdentityConfirmed = false
+              ..namedTenantVerified = false
+              ..homeSetupAdmin = false;
+
+            context.replace('/tenancy-members-review');
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+class TenancyRoleScreen extends StatelessWidget {
+  const TenancyRoleScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  void _continue(BuildContext context) {
+    draft.homeSetupAdmin = true;
+
+    context.replace('/tenancy-members-review');
+  }
+
+  @override
+  Widget build(BuildContext context) => AccessScaffold(
+    eyebrow: 'Home access',
+    title: 'Your tenancy status is confirmed',
+    message:
+        'Housely can now give you the correct setup permissions for this Home.',
+    onBack: () => context.go('/tenant-match-confirm'),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        HouselyMessageState(
+          kind: HouselyMessageKind.success,
+          title: 'Named tenancy member',
+          message:
+              '${draft.matchedTenantName ?? draft.name} has been confirmed as matching your Housely account.',
+        ),
+
+        const SizedBox(height: HouselySpace.lg),
+
+        HouselySurface(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Home setup admin',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+
+              const SizedBox(height: HouselySpace.xs),
+
+              Text(
+                'Because you are the first verified tenancy member setting up this Home, you can complete the household setup, connect members and manage initial Home access.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: HouselySpace.lg),
+
+        const HouselyPrivacyNotice(
+          title: 'App access is not legal authority',
+          message:
+              'Being a Home setup admin only controls Housely features. It does not make you the lead tenant, landlord or give you additional legal rights over other tenancy members.',
+        ),
+
+        const SizedBox(height: HouselySpace.xl),
+
+        HouselyButton(label: 'Continue', onPressed: () => _continue(context)),
+      ],
+    ),
+  );
+}
+
+class TenancyMembersReviewScreen extends StatelessWidget {
+  const TenancyMembersReviewScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  @override
+  Widget build(BuildContext context) => AccessScaffold(
+    eyebrow: 'Household',
+    title: 'Review tenancy members',
+    message:
+        'These people were found in the agreement. They are not automatically added to your Housely Home.',
+    onBack: () {
+      if (draft.namedTenantVerified) {
+        context.go('/tenancy-role');
+      } else {
+        context.go('/tenant-match-missing');
+      }
+    },
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        HouselyGroupedList(
+          children: draft.detectedTenantNames.map((name) {
+            final isCurrentUser = name == draft.matchedTenantName;
+
+            return HouselyMemberRow(
+              name: name,
+              role: 'Named on tenancy',
+              status: isCurrentUser ? 'You · Verified' : 'Not connected',
+            );
+          }).toList(),
+        ),
+
+        const SizedBox(height: HouselySpace.lg),
+
+        const HouselyPrivacyNotice(
+          title: 'Names do not create accounts',
+          message:
+              'Other tenancy members will only receive Home access after they are connected and accept an invitation.',
+        ),
+
+        const SizedBox(height: HouselySpace.xl),
+
+        HouselyButton(
+          label: 'Connect household members',
+          onPressed: () => context.replace('/invite-members'),
+        ),
+
+        const SizedBox(height: HouselySpace.sm),
+
+        HouselyButton(
+          label: 'Do this later',
+          style: HouselyButtonStyle.text,
+          onPressed: () => context.go('/home'),
         ),
       ],
     ),

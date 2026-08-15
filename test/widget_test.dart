@@ -328,4 +328,115 @@ void main() {
 
     expect(find.textContaining('We found'), findsOneWidget);
   });
+
+  testWidgets('tenant match shows detected tenancy names', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-processing'),
+    );
+
+    await tester.pump();
+
+    await tester.pump(const Duration(seconds: 3));
+
+    await tester.pumpAndSettle();
+
+    final reviewMatchButton = find.text('Review my match');
+
+    await tester.ensureVisible(reviewMatchButton);
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(reviewMatchButton);
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Which name is yours?'), findsOneWidget);
+
+    expect(find.text('Muhammad Shaheer Shoukathali'), findsOneWidget);
+  });
+
+  testWidgets('user can confirm detected tenancy identity', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-processing'),
+    );
+
+    await tester.pump();
+
+    await tester.pump(const Duration(seconds: 3));
+
+    await tester.pumpAndSettle();
+
+    final reviewMatchButton = find.text('Review my match');
+
+    await tester.ensureVisible(reviewMatchButton);
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(reviewMatchButton);
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Muhammad Shaheer Shoukathali'));
+
+    await tester.pumpAndSettle();
+
+    final continueButton = find.text('Continue');
+
+    expect(continueButton, findsOneWidget);
+
+    await tester.ensureVisible(continueButton);
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(continueButton);
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Confirm this is you'), findsOneWidget);
+
+    final confirmButton = find.text('Yes, this is me');
+
+    await tester.ensureVisible(confirmButton);
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(confirmButton);
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Your tenancy status is confirmed'), findsOneWidget);
+  });
+  testWidgets('tenant match supports no matching name', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-processing'),
+    );
+
+    await tester.pump();
+
+    await tester.pump(const Duration(seconds: 3));
+
+    await tester.pumpAndSettle();
+
+    final reviewMatchButton = find.text('Review my match');
+
+    await tester.ensureVisible(reviewMatchButton);
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(reviewMatchButton);
+
+    await tester.pumpAndSettle();
+
+    final noMatchButton = find.text('None of these are me');
+
+    await tester.ensureVisible(noMatchButton);
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(noMatchButton);
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('We couldn’t match your name'), findsOneWidget);
+  });
 }
