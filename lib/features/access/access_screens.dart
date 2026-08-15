@@ -72,8 +72,8 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
-  late final TextEditingController _email = TextEditingController(
-    text: widget.draft.signInEmail,
+  late final TextEditingController _identifier = TextEditingController(
+    text: widget.draft.signInIdentifier,
   );
 
   final TextEditingController _password = TextEditingController();
@@ -81,14 +81,20 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _showErrors = false;
   bool _loading = false;
 
-  bool get _emailValid {
-    final value = _email.text.trim();
-    return value.isNotEmpty && value.contains('@');
+  bool get _identifierValid {
+    final value = _identifier.text.trim();
+
+    if (value.isEmpty) return false;
+
+    final looksLikeEmail = value.contains('@');
+    final looksLikePhone = value.replaceAll(' ', '').startsWith('+');
+
+    return looksLikeEmail || looksLikePhone;
   }
 
   bool get _passwordValid => _password.text.isNotEmpty;
 
-  bool get _valid => _emailValid && _passwordValid;
+  bool get _valid => _identifierValid && _passwordValid;
 
   Future<void> _signIn() async {
     setState(() {
@@ -97,7 +103,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
     if (!_valid) return;
 
-    widget.draft.signInEmail = _email.text.trim();
+    widget.draft.signInIdentifier = _identifier.text.trim();
 
     setState(() {
       _loading = true;
@@ -118,7 +124,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   void dispose() {
-    _email.dispose();
+    _identifier.dispose();
     _password.dispose();
     super.dispose();
   }
@@ -136,7 +142,7 @@ class _SignInScreenState extends State<SignInScreen> {
           if (_showErrors && !_valid) ...[
             HouselyValidationSummary(
               errors: [
-                if (!_emailValid) 'Enter a valid email address.',
+                if (!_identifierValid) 'Enter a valid email or phone number.',
                 if (!_passwordValid) 'Enter your password.',
               ],
             ),
@@ -144,13 +150,13 @@ class _SignInScreenState extends State<SignInScreen> {
           ],
 
           HouselyField(
-            label: 'Email address',
-            type: HouselyFieldType.email,
-            controller: _email,
-            state: _showErrors && !_emailValid
+            label: 'Email or phone number',
+            hint: 'shaheer@example.com or +44 7700 900123',
+            controller: _identifier,
+            state: _showErrors && !_identifierValid
                 ? HouselyComponentState.error
                 : HouselyComponentState.idle,
-            errorText: 'Enter a valid email address.',
+            errorText: 'Enter your email address or phone number.',
             onChanged: (_) => setState(() {}),
           ),
 
@@ -173,7 +179,7 @@ class _SignInScreenState extends State<SignInScreen> {
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () {
-                widget.draft.signInEmail = _email.text.trim();
+                widget.draft.signInIdentifier = _identifier.text.trim();
 
                 context.replace('/forgot-password');
               },
@@ -222,15 +228,20 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  late final TextEditingController _email = TextEditingController(
-    text: widget.draft.signInEmail.isNotEmpty
-        ? widget.draft.signInEmail
-        : widget.draft.resetEmail,
+  late final TextEditingController _identifier = TextEditingController(
+    text: widget.draft.signInIdentifier.isNotEmpty
+        ? widget.draft.signInIdentifier
+        : widget.draft.recoveryIdentifier,
   );
-
   bool _showError = false;
 
-  bool get _valid => _email.text.trim().isNotEmpty && _email.text.contains('@');
+  bool get _valid {
+    final value = _identifier.text.trim();
+
+    if (value.isEmpty) return false;
+
+    return value.contains('@') || value.replaceAll(' ', '').startsWith('+');
+  }
 
   void _sendReset() {
     setState(() {
@@ -239,14 +250,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     if (!_valid) return;
 
-    widget.draft.resetEmail = _email.text.trim();
+    widget.draft.recoveryIdentifier = _identifier.text.trim();
 
     context.replace('/password-reset-sent');
   }
 
   @override
   void dispose() {
-    _email.dispose();
+    _identifier.dispose();
     super.dispose();
   }
 
@@ -254,25 +265,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) => AccessScaffold(
     eyebrow: 'Account recovery',
     title: 'Reset your password',
-    message: 'Enter the email address connected to your Housely account.',
+    message:
+        'Enter the email address or verified phone number connected to your Housely account.',
     onBack: () => context.go('/sign-in'),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         HouselyField(
-          label: 'Email address',
-          type: HouselyFieldType.email,
-          controller: _email,
+          label: 'Email or phone number',
+          hint: 'shaheer@example.com or +44 7700 900123',
+          controller: _identifier,
           state: _showError && !_valid
               ? HouselyComponentState.error
               : HouselyComponentState.idle,
-          errorText: 'Enter a valid email address.',
+          errorText: 'Enter a valid email address or phone number.',
           onChanged: (_) {
-            if (_showError) {
-              setState(() {
-                _showError = false;
-              });
-            }
+            setState(() {
+              _showError = false;
+            });
           },
         ),
 
@@ -298,18 +308,19 @@ class PasswordResetSentScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AccessScaffold(
     eyebrow: 'Account recovery',
-    title: 'Check your email',
+    title: 'Check your messages',
+
     message:
-        'We’ve sent password reset instructions to ${draft.resetEmail.isEmpty ? 'your email address' : draft.resetEmail}.',
+        'We’ve sent account recovery instructions to ${draft.recoveryIdentifier.isEmpty ? 'your email or phone number' : draft.recoveryIdentifier}.',
     onBack: () => context.go('/sign-in'),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const HouselyMessageState(
           kind: HouselyMessageKind.success,
-          title: 'Reset link sent',
+          title: 'Recovery instructions sent',
           message:
-              'Open the secure link in your email to choose a new password.',
+              'Follow the secure recovery instructions to regain access to your account.',
         ),
 
         const SizedBox(height: HouselySpace.xl),
@@ -343,6 +354,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   late final TextEditingController _name = TextEditingController(
     text: widget.draft.name,
   );
+  late final TextEditingController _phone = TextEditingController(
+    text: widget.draft.phone,
+  );
   late final TextEditingController _email = TextEditingController(
     text: widget.draft.email,
   );
@@ -352,26 +366,46 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   bool _terms = false;
   bool _showErrors = false;
 
+  bool get _phoneValid {
+    final value = _phone.text.trim().replaceAll(' ', '').replaceAll('-', '');
+
+    return value.startsWith('+') && value.length >= 9;
+  }
+
+  bool get _emailValid {
+    final value = _email.text.trim();
+
+    // Email is optional.
+    // If the user enters one, it must look like an email.
+    return value.isEmpty || value.contains('@');
+  }
+
   bool get _valid =>
       _name.text.trim().isNotEmpty &&
-      _email.text.contains('@') &&
+      _phoneValid &&
+      _emailValid &&
       _password.text.length >= 12 &&
       _terms;
 
   void _continue() {
     setState(() => _showErrors = !_valid);
+
     if (!_valid) return;
+
     widget.draft
       ..name = _name.text.trim()
+      ..phone = _phone.text.trim().replaceAll(' ', '').replaceAll('-', '')
       ..email = _email.text.trim()
       ..password = _password.text;
-    context.replace('/verify-email');
+
+    context.replace('/verify-phone');
   }
 
   @override
   void dispose() {
     _name.dispose();
     _email.dispose();
+    _phone.dispose();
     _password.dispose();
     super.dispose();
   }
@@ -387,28 +421,57 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (_showErrors) ...[
-          const HouselyValidationSummary(
+          HouselyValidationSummary(
             errors: [
-              'Enter your name and a valid email.',
-              'Use at least 12 password characters.',
-              'Accept the terms to continue.',
+              if (_name.text.trim().isEmpty) 'Enter your full name.',
+              if (!_phoneValid) 'Enter a valid phone number with country code.',
+              if (!_emailValid) 'Check your email address.',
+              if (_password.text.length < 12)
+                'Use at least 12 password characters.',
+              if (!_terms) 'Accept the terms to continue.',
             ],
           ),
           const SizedBox(height: HouselySpace.md),
         ],
+
         HouselyField(
           label: 'Full name',
           controller: _name,
           onChanged: (_) => setState(() {}),
         ),
+
         const SizedBox(height: HouselySpace.md),
+
         HouselyField(
-          label: 'Email address',
-          type: HouselyFieldType.email,
-          controller: _email,
+          label: 'Phone number',
+          hint: '+44 7700 900123',
+          type: HouselyFieldType.phone,
+          controller: _phone,
+          state: _showErrors && !_phoneValid
+              ? HouselyComponentState.error
+              : HouselyComponentState.idle,
+          errorText: 'Enter your phone number with country code.',
+          helperText:
+              'Required for account verification and household invites.',
           onChanged: (_) => setState(() {}),
         ),
+
         const SizedBox(height: HouselySpace.md),
+
+        HouselyField(
+          label: 'Email address (optional)',
+          hint: 'shaheer@example.com',
+          type: HouselyFieldType.email,
+          controller: _email,
+          state: _showErrors && !_emailValid
+              ? HouselyComponentState.error
+              : HouselyComponentState.idle,
+          errorText: 'Enter a valid email address.',
+          onChanged: (_) => setState(() {}),
+        ),
+
+        const SizedBox(height: HouselySpace.md),
+
         HouselyField(
           label: 'Password',
           type: HouselyFieldType.password,
@@ -416,64 +479,122 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           helperText: 'Use at least 12 characters.',
           onChanged: (_) => setState(() {}),
         ),
+
         const SizedBox(height: HouselySpace.md),
+
         HouselyCheckbox(
           label: 'I agree to the Terms and Privacy Policy',
           value: _terms,
           onChanged: (value) => setState(() => _terms = value ?? false),
         ),
+
         const SizedBox(height: HouselySpace.xl),
-        HouselyButton(label: 'Continue', onPressed: _continue),
+
+        HouselyButton(
+          label: 'Continue',
+          state: _valid
+              ? HouselyComponentState.idle
+              : HouselyComponentState.disabled,
+          onPressed: _valid ? _continue : null,
+        ),
       ],
     ),
   );
 }
 
-class VerifyEmailScreen extends StatefulWidget {
-  const VerifyEmailScreen({required this.draft, super.key});
+class VerifyPhoneScreen extends StatefulWidget {
+  const VerifyPhoneScreen({required this.draft, super.key});
+
   final AccessDraft draft;
 
   @override
-  State<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
+  State<VerifyPhoneScreen> createState() => _VerifyPhoneScreenState();
 }
 
-class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
+class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
+  final TextEditingController _code = TextEditingController();
+
   bool _resent = false;
+  bool _showError = false;
+
+  bool get _valid => _code.text.trim().length == 6;
+
+  void _verify() {
+    setState(() {
+      _showError = !_valid;
+    });
+
+    if (!_valid) return;
+
+    widget.draft.phoneVerified = true;
+
+    context.replace('/start-choice');
+  }
+
+  @override
+  void dispose() {
+    _code.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => AccessScaffold(
     eyebrow: 'Account',
-    title: 'Check your email',
+    title: 'Verify your phone',
     message:
-        'We sent a verification link to ${widget.draft.email.isEmpty ? 'your email address' : widget.draft.email}.',
-    onBack: () => context.replace('/create-account'),
+        'We sent a 6-digit code to ${widget.draft.phone.isEmpty ? 'your phone number' : widget.draft.phone}.',
+    onBack: () => context.go('/create-account'),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const HouselyMessageState(
-          kind: HouselyMessageKind.success,
-          title: 'Verification sent',
+        const HouselyPrivacyNotice(
+          title: 'Why verify your number?',
           message:
-              'Open the secure link in the same device to return to Housely.',
+              'A verified number helps Housely securely identify your account and connect invitations intended for you.',
         ),
+
         const SizedBox(height: HouselySpace.xl),
-        HouselyButton(
-          label: 'I’ve verified my email',
-          onPressed: () => context.replace('/start-choice'),
+
+        HouselyField(
+          label: 'Verification code',
+          hint: '123456',
+          controller: _code,
+          state: _showError && !_valid
+              ? HouselyComponentState.error
+              : HouselyComponentState.idle,
+          errorText: 'Enter the 6-digit verification code.',
+          onChanged: (_) => setState(() {}),
         ),
-        const SizedBox(height: HouselySpace.sm),
+
+        const SizedBox(height: HouselySpace.xl),
+
         HouselyButton(
-          label: _resent ? 'Email sent again' : 'Resend email',
+          label: 'Verify phone',
+          state: _valid
+              ? HouselyComponentState.idle
+              : HouselyComponentState.disabled,
+          onPressed: _valid ? _verify : null,
+        ),
+
+        const SizedBox(height: HouselySpace.sm),
+
+        HouselyButton(
+          label: _resent ? 'Code sent again' : 'Send code again',
           style: HouselyButtonStyle.text,
           state: _resent
               ? HouselyComponentState.success
               : HouselyComponentState.idle,
-          onPressed: () => setState(() => _resent = true),
+          onPressed: () {
+            setState(() {
+              _resent = true;
+            });
+          },
         ),
+
         HouselyButton(
-          label: 'Change email address',
+          label: 'Change phone number',
           style: HouselyButtonStyle.text,
-          onPressed: () => context.replace('/create-account'),
+          onPressed: () => context.go('/create-account'),
         ),
       ],
     ),
@@ -489,7 +610,7 @@ class StartChoiceScreen extends StatelessWidget {
     title: 'How are you getting started?',
     message:
         'Set up your own Home or join a household that already uses Housely.',
-    onBack: () => context.replace('/verify-email'),
+    onBack: () => context.go('/verify-phone'),
     child: Column(
       children: [
         HouselySelectionTile(

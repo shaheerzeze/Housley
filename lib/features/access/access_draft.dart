@@ -1,13 +1,26 @@
 enum TenancyRelationship { namedOnTenancy, notNamedOnTenancy, unsure }
 
 class AccessDraft {
+  
   // Account
-  String name = '';
-  String email = '';
-  String password = '';
-  // Sign in / password recovery
-  String signInEmail = '';
-  String resetEmail = '';
+String name = '';
+
+/// Required and later verified.
+/// Store the full international number, e.g. +447700900123.
+String phone = '';
+
+/// Optional.
+String email = '';
+
+String password = '';
+
+// Sign in / recovery
+String signInIdentifier = '';
+String recoveryIdentifier = '';
+
+bool get hasEmail => email.trim().isNotEmpty;
+
+bool phoneVerified = false;
 
   // Home
   String homeName = '';

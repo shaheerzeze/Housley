@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../theme/housely_tokens.dart';
 import 'component_state.dart';
 
-enum HouselyFieldType { text, email, password, money, date, search }
+enum HouselyFieldType { text, email, password, money, date, search, phone }
 
 class HouselyField extends StatefulWidget {
   const HouselyField({
@@ -60,8 +60,11 @@ class _HouselyFieldState extends State<HouselyField> {
       textInputAction: widget.type == HouselyFieldType.search
           ? TextInputAction.search
           : TextInputAction.next,
+
       autofillHints: switch (widget.type) {
+        HouselyFieldType.phone => const [AutofillHints.telephoneNumber],
         HouselyFieldType.email => const [AutofillHints.email],
+
         HouselyFieldType.password => const [AutofillHints.password],
         _ => null,
       },
@@ -86,6 +89,7 @@ class _HouselyFieldState extends State<HouselyField> {
 
   TextInputType get _keyboardType => switch (widget.type) {
     HouselyFieldType.email => TextInputType.emailAddress,
+    HouselyFieldType.phone => TextInputType.phone,
     HouselyFieldType.money => const TextInputType.numberWithOptions(
       decimal: true,
     ),
@@ -98,6 +102,7 @@ class _HouselyFieldState extends State<HouselyField> {
       widthFactor: 1,
       child: Text('£', style: TextStyle(fontWeight: FontWeight.w500)),
     ),
+    HouselyFieldType.phone => const Icon(Icons.phone_outlined),
     HouselyFieldType.search => const Icon(Icons.search_rounded),
     HouselyFieldType.date => const Icon(Icons.calendar_today_outlined),
     HouselyFieldType.email => const Icon(Icons.mail_outline_rounded),
