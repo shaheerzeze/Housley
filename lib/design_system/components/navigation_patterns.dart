@@ -21,12 +21,20 @@ class HouselyTopBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) => AppBar(
+    automaticallyImplyLeading: false,
+    leadingWidth: onBack == null ? null : 68,
     leading: onBack == null
         ? null
-        : HouselyIconButton(
-            icon: Icons.arrow_back_ios_new_rounded,
-            label: 'Back',
-            onPressed: onBack,
+        : Padding(
+            padding: const EdgeInsets.only(left: HouselySize.phoneGutter),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: HouselyIconButton(
+                icon: Icons.arrow_back_ios_new_rounded,
+                label: 'Back',
+                onPressed: onBack,
+              ),
+            ),
           ),
     title: Text(title),
     actions: actions,

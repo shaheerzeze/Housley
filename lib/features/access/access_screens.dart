@@ -45,19 +45,288 @@ class WelcomeScreen extends StatelessWidget {
                 const Spacer(flex: 3),
                 HouselyButton(
                   label: 'Create account',
-                  onPressed: () => context.go('/create-account'),
+                  onPressed: () => context.replace('/create-account'),
                 ),
                 const SizedBox(height: HouselySpace.sm),
                 HouselyButton(
                   label: 'Sign in',
                   style: HouselyButtonStyle.secondary,
-                  onPressed: () => context.go('/create-account'),
+                  onPressed: () => context.replace('/sign-in'),
                 ),
               ],
             ),
           ),
         ),
       ),
+    ),
+  );
+}
+
+class SignInScreen extends StatefulWidget {
+  const SignInScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  @override
+  State<SignInScreen> createState() => _SignInScreenState();
+}
+
+class _SignInScreenState extends State<SignInScreen> {
+  late final TextEditingController _email = TextEditingController(
+    text: widget.draft.signInEmail,
+  );
+
+  final TextEditingController _password = TextEditingController();
+
+  bool _showErrors = false;
+  bool _loading = false;
+
+  bool get _emailValid {
+    final value = _email.text.trim();
+    return value.isNotEmpty && value.contains('@');
+  }
+
+  bool get _passwordValid => _password.text.isNotEmpty;
+
+  bool get _valid => _emailValid && _passwordValid;
+
+  Future<void> _signIn() async {
+    setState(() {
+      _showErrors = !_valid;
+    });
+
+    if (!_valid) return;
+
+    widget.draft.signInEmail = _email.text.trim();
+
+    setState(() {
+      _loading = true;
+    });
+
+    // MOCK AUTH ONLY.
+    // Replace this with Supabase Auth later.
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+
+    if (!mounted) return;
+
+    setState(() {
+      _loading = false;
+    });
+
+    context.replace('/home');
+  }
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AccessScaffold(
+    eyebrow: 'Account',
+    title: 'Welcome back',
+    message: 'Sign in to continue to your Home, household and private records.',
+    onBack: () => context.go('/welcome'),
+    child: AutofillGroup(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_showErrors && !_valid) ...[
+            HouselyValidationSummary(
+              errors: [
+                if (!_emailValid) 'Enter a valid email address.',
+                if (!_passwordValid) 'Enter your password.',
+              ],
+            ),
+            const SizedBox(height: HouselySpace.md),
+          ],
+
+          HouselyField(
+            label: 'Email address',
+            type: HouselyFieldType.email,
+            controller: _email,
+            state: _showErrors && !_emailValid
+                ? HouselyComponentState.error
+                : HouselyComponentState.idle,
+            errorText: 'Enter a valid email address.',
+            onChanged: (_) => setState(() {}),
+          ),
+
+          const SizedBox(height: HouselySpace.md),
+
+          HouselyField(
+            label: 'Password',
+            type: HouselyFieldType.password,
+            controller: _password,
+            state: _showErrors && !_passwordValid
+                ? HouselyComponentState.error
+                : HouselyComponentState.idle,
+            errorText: 'Enter your password.',
+            onChanged: (_) => setState(() {}),
+          ),
+
+          const SizedBox(height: HouselySpace.sm),
+
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () {
+                widget.draft.signInEmail = _email.text.trim();
+
+                context.replace('/forgot-password');
+              },
+              child: const Text('Forgot password?'),
+            ),
+          ),
+
+          const SizedBox(height: HouselySpace.lg),
+
+          HouselyButton(
+            label: 'Sign in',
+            state: _loading
+                ? HouselyComponentState.loading
+                : HouselyComponentState.idle,
+            onPressed: _loading ? null : _signIn,
+          ),
+
+          const SizedBox(height: HouselySpace.md),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'New to Housely?',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              TextButton(
+                onPressed: () => context.replace('/create-account'),
+                child: const Text('Create account'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class ForgotPasswordScreen extends StatefulWidget {
+  const ForgotPasswordScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  @override
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+}
+
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  late final TextEditingController _email = TextEditingController(
+    text: widget.draft.signInEmail.isNotEmpty
+        ? widget.draft.signInEmail
+        : widget.draft.resetEmail,
+  );
+
+  bool _showError = false;
+
+  bool get _valid => _email.text.trim().isNotEmpty && _email.text.contains('@');
+
+  void _sendReset() {
+    setState(() {
+      _showError = !_valid;
+    });
+
+    if (!_valid) return;
+
+    widget.draft.resetEmail = _email.text.trim();
+
+    context.replace('/password-reset-sent');
+  }
+
+  @override
+  void dispose() {
+    _email.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AccessScaffold(
+    eyebrow: 'Account recovery',
+    title: 'Reset your password',
+    message: 'Enter the email address connected to your Housely account.',
+    onBack: () => context.go('/sign-in'),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        HouselyField(
+          label: 'Email address',
+          type: HouselyFieldType.email,
+          controller: _email,
+          state: _showError && !_valid
+              ? HouselyComponentState.error
+              : HouselyComponentState.idle,
+          errorText: 'Enter a valid email address.',
+          onChanged: (_) {
+            if (_showError) {
+              setState(() {
+                _showError = false;
+              });
+            }
+          },
+        ),
+
+        const SizedBox(height: HouselySpace.xl),
+
+        HouselyButton(
+          label: 'Send reset link',
+          state: _valid
+              ? HouselyComponentState.idle
+              : HouselyComponentState.disabled,
+          onPressed: _valid ? _sendReset : null,
+        ),
+      ],
+    ),
+  );
+}
+
+class PasswordResetSentScreen extends StatelessWidget {
+  const PasswordResetSentScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  @override
+  Widget build(BuildContext context) => AccessScaffold(
+    eyebrow: 'Account recovery',
+    title: 'Check your email',
+    message:
+        'We’ve sent password reset instructions to ${draft.resetEmail.isEmpty ? 'your email address' : draft.resetEmail}.',
+    onBack: () => context.go('/sign-in'),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const HouselyMessageState(
+          kind: HouselyMessageKind.success,
+          title: 'Reset link sent',
+          message:
+              'Open the secure link in your email to choose a new password.',
+        ),
+
+        const SizedBox(height: HouselySpace.xl),
+
+        HouselyButton(
+          label: 'Back to sign in',
+          onPressed: () => context.replace('/sign-in'),
+        ),
+
+        const SizedBox(height: HouselySpace.sm),
+
+        HouselyButton(
+          label: 'Send again',
+          style: HouselyButtonStyle.text,
+          onPressed: () => context.replace('/forgot-password'),
+        ),
+      ],
     ),
   );
 }
@@ -96,7 +365,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       ..name = _name.text.trim()
       ..email = _email.text.trim()
       ..password = _password.text;
-    context.go('/verify-email');
+    context.replace('/verify-email');
   }
 
   @override
@@ -113,7 +382,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     title: 'Create your account',
     message:
         'Start with the minimum information needed to identify you securely.',
-    onBack: () => context.go('/welcome'),
+    onBack: () => context.replace('/welcome'),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -177,7 +446,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     title: 'Check your email',
     message:
         'We sent a verification link to ${widget.draft.email.isEmpty ? 'your email address' : widget.draft.email}.',
-    onBack: () => context.go('/create-account'),
+    onBack: () => context.replace('/create-account'),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -190,7 +459,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         const SizedBox(height: HouselySpace.xl),
         HouselyButton(
           label: 'I’ve verified my email',
-          onPressed: () => context.go('/start-choice'),
+          onPressed: () => context.replace('/start-choice'),
         ),
         const SizedBox(height: HouselySpace.sm),
         HouselyButton(
@@ -204,7 +473,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         HouselyButton(
           label: 'Change email address',
           style: HouselyButtonStyle.text,
-          onPressed: () => context.go('/create-account'),
+          onPressed: () => context.replace('/create-account'),
         ),
       ],
     ),
@@ -220,7 +489,7 @@ class StartChoiceScreen extends StatelessWidget {
     title: 'How are you getting started?',
     message:
         'Set up your own Home or join a household that already uses Housely.',
-    onBack: () => context.go('/verify-email'),
+    onBack: () => context.replace('/verify-email'),
     child: Column(
       children: [
         HouselySelectionTile(
@@ -229,7 +498,7 @@ class StartChoiceScreen extends StatelessWidget {
               'Set up your property, tenancy, household and shared costs.',
           icon: Icons.home_outlined,
           selected: false,
-          onTap: () => context.go('/create-home'),
+          onTap: () => context.replace('/create-home'),
         ),
         const SizedBox(height: HouselySpace.sm),
         HouselySelectionTile(
@@ -238,7 +507,7 @@ class StartChoiceScreen extends StatelessWidget {
               'Accept an invitation or request to join an existing household.',
           icon: Icons.group_add_outlined,
           selected: false,
-          onTap: () => context.go('/join-home'),
+          onTap: () => context.replace('/join-home'),
         ),
       ],
     ),
@@ -253,7 +522,7 @@ class JoinHomePlaceholderScreen extends StatelessWidget {
     eyebrow: 'Join a Home',
     title: 'Join your household',
     message: 'Invitations and Home join requests will be available here.',
-    onBack: () => context.go('/start-choice'),
+    onBack: () => context.replace('/start-choice'),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -266,7 +535,7 @@ class JoinHomePlaceholderScreen extends StatelessWidget {
         HouselyButton(
           label: 'Back',
           style: HouselyButtonStyle.secondary,
-          onPressed: () => context.go('/start-choice'),
+          onPressed: () => context.replace('/start-choice'),
         ),
       ],
     ),
@@ -303,14 +572,25 @@ class _CreateHomeScreenState extends State<CreateHomeScreen> {
   );
 
   bool _showManualAddress = false;
-  String? _selectedMockAddress;
-  bool _addressSearchPerformed = false;
 
-  bool get _canContinue =>
-      _name.text.trim().isNotEmpty &&
+  late String? _selectedMockAddress =
+      widget.draft.addressLine1.isNotEmpty &&
+          widget.draft.city.isNotEmpty &&
+          widget.draft.postcode.isNotEmpty
+      ? widget.draft.formattedAddress
+      : null;
+
+  bool _addressSearchPerformed = false;
+  bool get _hasLookupAddress => _selectedMockAddress != null;
+
+  bool get _hasManualAddress =>
+      _showManualAddress &&
       _addressLine1.text.trim().isNotEmpty &&
       _city.text.trim().isNotEmpty &&
       _postcode.text.trim().isNotEmpty;
+
+  bool get _canContinue =>
+      _name.text.trim().isNotEmpty && (_hasLookupAddress || _hasManualAddress);
 
   List<String> get _mockAddresses {
     final postcode = _postcode.text.trim().toUpperCase();
@@ -330,15 +610,12 @@ class _CreateHomeScreenState extends State<CreateHomeScreen> {
     setState(() {
       _selectedMockAddress = address;
 
-      if (address.startsWith('24 ')) {
-        _addressLine1.text = '24 George Street';
-      } else if (address.startsWith('26 ')) {
-        _addressLine1.text = '26 George Street';
-      } else {
-        _addressLine1.text = '28 George Street';
-      }
+      final parts = address.split(',');
 
-      _city.text = 'Edinburgh';
+      _addressLine1.text = parts.first.trim();
+      _city.text = parts.length > 1 ? parts[1].trim() : '';
+
+      _showManualAddress = false;
     });
   }
 
@@ -352,7 +629,7 @@ class _CreateHomeScreenState extends State<CreateHomeScreen> {
       ..city = _city.text.trim()
       ..postcode = _postcode.text.trim().toUpperCase();
 
-    context.go('/tenancy-status');
+    context.replace('/tenancy-status');
   }
 
   @override
@@ -365,7 +642,6 @@ class _CreateHomeScreenState extends State<CreateHomeScreen> {
     super.dispose();
   }
 
-  @override
   @override
   Widget build(BuildContext context) => AccessScaffold(
     eyebrow: 'Home',
@@ -400,6 +676,13 @@ class _CreateHomeScreenState extends State<CreateHomeScreen> {
           onChanged: (_) {
             setState(() {
               _addressSearchPerformed = false;
+
+              if (_selectedMockAddress != null) {
+                _addressLine1.clear();
+                _addressLine2.clear();
+                _city.clear();
+              }
+
               _selectedMockAddress = null;
             });
           },
@@ -457,7 +740,10 @@ class _CreateHomeScreenState extends State<CreateHomeScreen> {
             setState(() {
               _showManualAddress = !_showManualAddress;
 
-              if (_showManualAddress) {
+              if (_showManualAddress && _selectedMockAddress != null) {
+                _addressLine1.clear();
+                _addressLine2.clear();
+                _city.clear();
                 _selectedMockAddress = null;
               }
             });
@@ -527,15 +813,15 @@ class TenancyStatusScreen extends StatelessWidget {
 
     switch (relationship) {
       case TenancyRelationship.namedOnTenancy:
-        context.go('/tenancy-next');
+        context.replace('/tenancy-next');
         break;
 
       case TenancyRelationship.notNamedOnTenancy:
-        context.go('/tenancy-next');
+        context.replace('/tenancy-next');
         break;
 
       case TenancyRelationship.unsure:
-        context.go('/tenancy-next');
+        context.replace('/tenancy-next');
         break;
     }
   }
@@ -644,7 +930,7 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
 
   @override
   Widget build(BuildContext context) => AccessScaffold(
-    eyebrow: 'Step 5 of 5',
+    eyebrow: 'Household',
     title: 'Invite your household',
     message:
         'Invited people receive no access until they accept and join your Home.',

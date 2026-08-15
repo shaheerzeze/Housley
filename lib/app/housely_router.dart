@@ -40,6 +40,20 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         builder: (context, state) => const WelcomeScreen(),
       ),
       GoRoute(
+        path: '/sign-in',
+        builder: (context, state) => SignInScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => ForgotPasswordScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/password-reset-sent',
+        builder: (context, state) => PasswordResetSentScreen(draft: draft),
+      ),
+      GoRoute(
         path: '/create-account',
         builder: (context, state) => CreateAccountScreen(draft: draft),
       ),
@@ -60,16 +74,14 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         builder: (context, state) => CreateHomeScreen(draft: draft),
       ),
       GoRoute(
-  path: '/tenancy-status',
-  builder: (context, state) =>
-      TenancyStatusScreen(draft: draft),
-),
+        path: '/tenancy-status',
+        builder: (context, state) => TenancyStatusScreen(draft: draft),
+      ),
 
-GoRoute(
-  path: '/tenancy-next',
-  builder: (context, state) =>
-      TenancyNextPlaceholderScreen(draft: draft),
-),
+      GoRoute(
+        path: '/tenancy-next',
+        builder: (context, state) => TenancyNextPlaceholderScreen(draft: draft),
+      ),
       GoRoute(
         path: '/invite-members',
         builder: (context, state) => InviteMembersScreen(draft: draft),

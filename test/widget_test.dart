@@ -164,44 +164,98 @@ void main() {
     expect(find.text('Delete account'), findsOneWidget);
   });
   testWidgets('start choice exposes create and join Home paths', (
-  tester,
-) async {
-  await tester.pumpWidget(
-    const HouselyApp(initialLocation: '/start-choice'),
-  );
+    tester,
+  ) async {
+    await tester.pumpWidget(const HouselyApp(initialLocation: '/start-choice'));
 
-  await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
 
-  expect(find.text('Create a Home'), findsOneWidget);
-  expect(find.text('Join a Home'), findsOneWidget);
+    expect(find.text('Create a Home'), findsOneWidget);
+    expect(find.text('Join a Home'), findsOneWidget);
 
-  expect(
-    find.text('Continue without a Home'),
-    findsNothing,
-  );
-});
-testWidgets('tenancy status exposes all relationship choices', (
-  tester,
-) async {
-  await tester.pumpWidget(
-    const HouselyApp(initialLocation: '/tenancy-status'),
-  );
+    expect(find.text('Continue without a Home'), findsNothing);
+  });
+  testWidgets('tenancy status exposes all relationship choices', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-status'),
+    );
 
-  await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
 
-  expect(
-    find.text('Yes, I’m named on the tenancy'),
-    findsOneWidget,
-  );
+    expect(find.text('Yes, I’m named on the tenancy'), findsOneWidget);
 
-  expect(
-    find.text('No, I’m not on the tenancy'),
-    findsOneWidget,
-  );
+    expect(find.text('No, I’m not on the tenancy'), findsOneWidget);
 
-  expect(
-    find.text('I’m not sure'),
-    findsOneWidget,
-  );
-});
+    expect(find.text('I’m not sure'), findsOneWidget);
+  });
+  testWidgets('property details continue to tenancy setup', (tester) async {
+    await tester.pumpWidget(const HouselyApp(initialLocation: '/create-home'));
+
+    await tester.pumpAndSettle();
+
+    // Enter Home name
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Home name'),
+      'George Street Flat',
+    );
+
+    // Enter postcode
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Postcode'),
+      'EH2 2LE',
+    );
+
+    // Open manual address fields
+    final manualAddressButton = find.text('Enter address manually');
+
+    await tester.ensureVisible(manualAddressButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(manualAddressButton);
+    await tester.pumpAndSettle();
+
+    // Enter address
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Address line 1'),
+      '24 George Street',
+    );
+
+    await tester.enterText(find.widgetWithText(TextField, 'City'), 'Edinburgh');
+
+    await tester.pumpAndSettle();
+
+    // Make sure the Continue button is actually visible
+    final continueButton = find.text('Continue');
+
+    await tester.ensureVisible(continueButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(continueButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Are you named on the tenancy?'), findsOneWidget);
+  });
+  testWidgets('Join a Home opens the safe placeholder', (tester) async {
+    await tester.pumpWidget(const HouselyApp(initialLocation: '/start-choice'));
+
+    await tester.pumpAndSettle();
+
+    final joinHome = find.text('Join a Home');
+
+    expect(joinHome, findsOneWidget);
+
+    await tester.tap(joinHome);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Join your household'), findsOneWidget);
+
+    expect(
+      find.text(
+        'You won’t see Household information until your membership has been accepted.',
+      ),
+      findsOneWidget,
+    );
+  });
 }

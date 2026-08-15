@@ -1,14 +1,13 @@
-enum TenancyRelationship {
-  namedOnTenancy,
-  notNamedOnTenancy,
-  unsure,
-}
+enum TenancyRelationship { namedOnTenancy, notNamedOnTenancy, unsure }
 
 class AccessDraft {
   // Account
   String name = '';
   String email = '';
   String password = '';
+  // Sign in / password recovery
+String signInEmail = '';
+String resetEmail = '';
 
   // Home
   String homeName = '';
