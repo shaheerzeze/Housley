@@ -117,6 +117,11 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         path: '/tenancy-members-review',
         builder: (context, state) => TenancyMembersReviewScreen(draft: draft),
       ),
+
+      GoRoute(
+        path: '/tenancy-complete',
+        builder: (context, state) => TenancySetupCompleteScreen(draft: draft),
+      ),
       GoRoute(
         path: '/invite-members',
         builder: (context, state) => InviteMembersScreen(draft: draft),

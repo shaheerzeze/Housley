@@ -439,4 +439,107 @@ void main() {
 
     expect(find.text('We couldn’t match your name'), findsOneWidget);
   });
+  testWidgets('verified tenancy flow reaches setup complete', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-processing'),
+    );
+
+    await tester.pump();
+
+    await tester.pump(const Duration(seconds: 3));
+
+    await tester.pumpAndSettle();
+
+    final reviewMatch = find.text('Review my match');
+
+    await tester.ensureVisible(reviewMatch);
+    await tester.pumpAndSettle();
+    await tester.tap(reviewMatch);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Muhammad Shaheer Shoukathali'));
+
+    await tester.pumpAndSettle();
+
+    final continueButton = find.text('Continue');
+
+    await tester.ensureVisible(continueButton);
+
+    await tester.pumpAndSettle();
+    await tester.tap(continueButton);
+    await tester.pumpAndSettle();
+
+    final confirmButton = find.text('Yes, this is me');
+
+    await tester.ensureVisible(confirmButton);
+
+    await tester.pumpAndSettle();
+    await tester.tap(confirmButton);
+    await tester.pumpAndSettle();
+
+    final roleContinue = find.text('Continue');
+
+    await tester.ensureVisible(roleContinue);
+
+    await tester.pumpAndSettle();
+    await tester.tap(roleContinue);
+    await tester.pumpAndSettle();
+
+    final laterButton = find.text('Do this later');
+
+    await tester.ensureVisible(laterButton);
+
+    await tester.pumpAndSettle();
+    await tester.tap(laterButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Your tenancy setup is complete'), findsOneWidget);
+  });
+
+  testWidgets('unverified tenancy flow can still complete setup', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-processing'),
+    );
+
+    await tester.pump();
+
+    await tester.pump(const Duration(seconds: 3));
+
+    await tester.pumpAndSettle();
+
+    final reviewMatch = find.text('Review my match');
+
+    await tester.ensureVisible(reviewMatch);
+    await tester.pumpAndSettle();
+    await tester.tap(reviewMatch);
+    await tester.pumpAndSettle();
+
+    final noMatch = find.text('None of these are me');
+
+    await tester.ensureVisible(noMatch);
+    await tester.pumpAndSettle();
+    await tester.tap(noMatch);
+    await tester.pumpAndSettle();
+
+    final continueUnverified = find.text('Continue without verification');
+
+    await tester.ensureVisible(continueUnverified);
+
+    await tester.pumpAndSettle();
+    await tester.tap(continueUnverified);
+
+    await tester.pumpAndSettle();
+
+    final laterButton = find.text('Do this later');
+
+    await tester.ensureVisible(laterButton);
+
+    await tester.pumpAndSettle();
+    await tester.tap(laterButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Your tenancy setup is saved'), findsOneWidget);
+  });
 }

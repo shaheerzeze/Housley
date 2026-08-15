@@ -1035,7 +1035,8 @@ class _UploadTenancyScreenState extends State<UploadTenancyScreen> {
         ..matchedTenantName = null
         ..tenancyIdentityConfirmed = false
         ..namedTenantVerified = false
-        ..homeSetupAdmin = false;
+        ..homeSetupAdmin = false
+        ..tenancySetupComplete = false;
 
       widget.draft.detectedTenantNames.clear();
     });
@@ -1222,7 +1223,8 @@ class _TenancyProcessingScreenState extends State<TenancyProcessingScreen> {
       ..matchedTenantName = null
       ..tenancyIdentityConfirmed = false
       ..namedTenantVerified = false
-      ..homeSetupAdmin = false;
+      ..homeSetupAdmin = false
+      ..tenancySetupComplete = false;
 
     widget.draft.detectedTenantNames
       ..clear()
@@ -1718,11 +1720,139 @@ class TenancyMembersReviewScreen extends StatelessWidget {
         HouselyButton(
           label: 'Do this later',
           style: HouselyButtonStyle.text,
-          onPressed: () => context.go('/home'),
+          onPressed: () => context.replace('/tenancy-complete'),
         ),
       ],
     ),
   );
+}
+
+class TenancySetupCompleteScreen extends StatelessWidget {
+  const TenancySetupCompleteScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  void _finish(BuildContext context) {
+    draft.tenancySetupComplete = true;
+
+    context.go('/home');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDocument = draft.tenancyDocumentName != null;
+
+    final hasDetectedNames = draft.detectedTenantNames.isNotEmpty;
+
+    final isVerified =
+        draft.namedTenantVerified && draft.tenancyIdentityConfirmed;
+
+    return AccessScaffold(
+      eyebrow: 'Setup complete',
+      title: isVerified
+          ? 'Your tenancy setup is complete'
+          : 'Your tenancy setup is saved',
+      message: isVerified
+          ? 'Your Home and tenancy details are ready. You can now continue setting up the household.'
+          : 'Your Home is ready. You can finish tenancy verification later if needed.',
+      onBack: () => context.go('/tenancy-members-review'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          HouselySurface(
+            child: Column(
+              children: [
+                const Icon(
+                  Icons.check_circle_outline_rounded,
+                  size: 48,
+                  color: HouselyPalette.mint,
+                ),
+
+                const SizedBox(height: HouselySpace.md),
+
+                Text(
+                  draft.homeName.isEmpty ? 'Your Home' : draft.homeName,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+
+                if (draft.formattedAddress.isNotEmpty) ...[
+                  const SizedBox(height: HouselySpace.xs),
+                  Text(
+                    draft.formattedAddress,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const SizedBox(height: HouselySpace.xl),
+
+          HouselyGroupedList(
+            children: [
+              HouselyMemberRow(
+                name: 'Home created',
+                role: draft.homeName.isEmpty ? 'Home setup' : draft.homeName,
+                status: 'Complete',
+              ),
+
+              HouselyMemberRow(
+                name: 'Property details',
+                role: draft.formattedAddress.isEmpty
+                    ? 'Not added'
+                    : draft.formattedAddress,
+                status: draft.formattedAddress.isEmpty
+                    ? 'Needs attention'
+                    : 'Complete',
+              ),
+
+              HouselyMemberRow(
+                name: 'Tenancy agreement',
+                role: hasDocument ? draft.tenancyDocumentName! : 'Not uploaded',
+                status: hasDocument ? 'Added' : 'Can add later',
+              ),
+
+              HouselyMemberRow(
+                name: 'Your tenancy identity',
+                role: isVerified
+                    ? draft.matchedTenantName ?? draft.name
+                    : 'Not verified',
+                status: isVerified ? 'Verified' : 'Can verify later',
+              ),
+
+              HouselyMemberRow(
+                name: 'Tenancy members',
+                role: hasDetectedNames
+                    ? '${draft.detectedTenantNames.length} detected'
+                    : 'None detected',
+                status: hasDetectedNames ? 'Reviewed' : 'Can add later',
+              ),
+            ],
+          ),
+
+          const SizedBox(height: HouselySpace.lg),
+
+          HouselyPrivacyNotice(
+            title: isVerified
+                ? 'You can update this later'
+                : 'Verification is still available',
+            message: isVerified
+                ? 'Tenancy details, documents and household connections can be updated from your Home settings.'
+                : 'You can upload or review your tenancy later without losing the Home you just created.',
+          ),
+
+          const SizedBox(height: HouselySpace.xl),
+
+          HouselyButton(
+            label: 'Continue to Home',
+            onPressed: () => _finish(context),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class InviteMembersScreen extends StatefulWidget {
@@ -1756,7 +1886,7 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
     title: 'Invite your household',
     message:
         'Invited people receive no access until they accept and join your Home.',
-    onBack: () => context.go('/create-home'),
+    onBack: () => context.go('/tenancy-members-review'),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1803,13 +1933,13 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
         const SizedBox(height: HouselySpace.xl),
         HouselyButton(
           label: 'Finish setup',
-          onPressed: () => context.go('/home'),
+          onPressed: () => context.replace('/tenancy-complete'),
         ),
         const SizedBox(height: HouselySpace.xs),
         HouselyButton(
           label: 'Skip for now',
           style: HouselyButtonStyle.text,
-          onPressed: () => context.go('/home'),
+          onPressed: () => context.replace('/tenancy-complete'),
         ),
       ],
     ),

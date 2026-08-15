@@ -50,6 +50,7 @@ class AccessDraft {
   /// Housely product permission only.
   /// This does not represent extra legal tenancy rights.
   bool homeSetupAdmin = false;
+  bool tenancySetupComplete = false;
 
   // Members
   final List<String> invites = [];
