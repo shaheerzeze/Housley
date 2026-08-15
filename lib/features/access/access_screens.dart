@@ -813,15 +813,15 @@ class TenancyStatusScreen extends StatelessWidget {
 
     switch (relationship) {
       case TenancyRelationship.namedOnTenancy:
-        context.replace('/tenancy-next');
+        context.replace('/upload-tenancy');
         break;
 
       case TenancyRelationship.notNamedOnTenancy:
-        context.replace('/tenancy-next');
+        context.replace('/tenancy-detected');
         break;
 
       case TenancyRelationship.unsure:
-        context.replace('/tenancy-next');
+        context.replace('/upload-tenancy');
         break;
     }
   }
@@ -870,33 +870,398 @@ class TenancyStatusScreen extends StatelessWidget {
   );
 }
 
-class TenancyNextPlaceholderScreen extends StatelessWidget {
-  const TenancyNextPlaceholderScreen({required this.draft, super.key});
+class UploadTenancyScreen extends StatefulWidget {
+  const UploadTenancyScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  @override
+  State<UploadTenancyScreen> createState() => _UploadTenancyScreenState();
+}
+
+class _UploadTenancyScreenState extends State<UploadTenancyScreen> {
+  bool _uploading = false;
+
+  bool get _hasDocument => widget.draft.tenancyDocumentName != null;
+
+  Future<void> _chooseMockDocument() async {
+    setState(() {
+      _uploading = true;
+    });
+
+    await Future<void>.delayed(const Duration(milliseconds: 650));
+
+    if (!mounted) return;
+
+    setState(() {
+      widget.draft
+        ..tenancyDocumentName = 'tenancy-agreement.pdf'
+        ..tenancyDocumentType = 'PDF'
+        ..tenancyDocumentSizeBytes = 1840000
+        ..tenancySkipped = false;
+
+      _uploading = false;
+    });
+  }
+
+  void _removeDocument() {
+    setState(() {
+      widget.draft
+        ..tenancyDocumentName = null
+        ..tenancyDocumentType = null
+        ..tenancyDocumentSizeBytes = null
+        ..tenancyProcessingComplete = false;
+
+      widget.draft.detectedTenantNames.clear();
+    });
+  }
+
+  void _continue() {
+    if (!_hasDocument) return;
+
+    context.replace('/tenancy-processing');
+  }
+
+  @override
+  Widget build(BuildContext context) => AccessScaffold(
+    eyebrow: 'Tenancy',
+    title: 'Add your tenancy agreement',
+    message:
+        'We’ll use your agreement to identify the people named on the tenancy and help set up the right household access.',
+    onBack: () => context.go('/tenancy-status'),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const HouselyPrivacyNotice(
+          title: 'Your tenancy stays private',
+          message:
+              'Only accepted Home members with the right Household access will be able to view this document.',
+        ),
+
+        const SizedBox(height: HouselySpace.xl),
+
+        if (!_hasDocument && !_uploading)
+          HouselySurface(
+            child: Column(
+              children: [
+                const Icon(
+                  Icons.description_outlined,
+                  size: 38,
+                  color: HouselyPalette.violet,
+                ),
+
+                const SizedBox(height: HouselySpace.md),
+
+                Text(
+                  'Upload your tenancy agreement',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+
+                const SizedBox(height: HouselySpace.xs),
+
+                Text(
+                  'PDF or image. For this prototype, Housely will use a sample tenancy document.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+
+                const SizedBox(height: HouselySpace.lg),
+
+                HouselyButton(
+                  label: 'Choose document',
+                  leadingIcon: Icons.upload_file_outlined,
+                  onPressed: _chooseMockDocument,
+                ),
+              ],
+            ),
+          ),
+
+        if (_uploading)
+          const HouselyUploadProgress(
+            fileName: 'tenancy-agreement.pdf',
+            progress: .65,
+          ),
+
+        if (_hasDocument && !_uploading)
+          HouselySurface(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.picture_as_pdf_outlined,
+                      color: HouselyPalette.violet,
+                    ),
+
+                    const SizedBox(width: HouselySpace.sm),
+
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.draft.tenancyDocumentName!,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+
+                          const SizedBox(height: 2),
+
+                          Text(
+                            'PDF · 1.8 MB',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    HouselyIconButton(
+                      icon: Icons.delete_outline_rounded,
+                      label: 'Remove document',
+                      destructive: true,
+                      onPressed: _removeDocument,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+        const SizedBox(height: HouselySpace.xl),
+
+        HouselyButton(
+          label: 'Continue',
+          state: _hasDocument
+              ? HouselyComponentState.idle
+              : HouselyComponentState.disabled,
+          onPressed: _hasDocument ? _continue : null,
+        ),
+
+        const SizedBox(height: HouselySpace.sm),
+
+        HouselyButton(
+          label: 'I don’t have my tenancy right now',
+          style: HouselyButtonStyle.text,
+          onPressed: () {
+            widget.draft.tenancySkipped = true;
+
+            context.replace('/tenancy-detected');
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+class TenancyProcessingScreen extends StatefulWidget {
+  const TenancyProcessingScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  @override
+  State<TenancyProcessingScreen> createState() =>
+      _TenancyProcessingScreenState();
+}
+
+class _TenancyProcessingScreenState extends State<TenancyProcessingScreen> {
+  int _stage = 0;
+
+  static const _stages = [
+    'Reading agreement',
+    'Finding tenant names',
+    'Checking tenancy details',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+
+    _runMockProcessing();
+  }
+
+  Future<void> _runMockProcessing() async {
+    for (var i = 0; i < _stages.length; i++) {
+      if (!mounted) return;
+
+      setState(() {
+        _stage = i;
+      });
+
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+    }
+
+    if (!mounted) return;
+
+    widget.draft.tenancyProcessingComplete = true;
+
+    widget.draft.detectedTenantNames
+      ..clear()
+      ..addAll(['Muhammad Shaheer Shoukathali', 'Alex Morgan', 'Meera Thomas']);
+
+    context.replace('/tenancy-detected');
+  }
+
+  @override
+  Widget build(BuildContext context) => AccessScaffold(
+    eyebrow: 'Tenancy',
+    title: 'Reading your agreement',
+    message: 'This should only take a moment.',
+    onBack: null,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        HouselySurface(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const HouselySkeleton(width: 120, height: 16),
+
+              const SizedBox(height: HouselySpace.md),
+
+              const HouselySkeleton(height: 14),
+
+              const SizedBox(height: HouselySpace.sm),
+
+              const HouselySkeleton(width: 220, height: 14),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: HouselySpace.xl),
+
+        HouselyProgress(
+          value: (_stage + 1) / _stages.length,
+          label: _stages[_stage],
+          semanticLabel: 'Tenancy processing progress',
+        ),
+
+        const SizedBox(height: HouselySpace.lg),
+
+        Text(
+          'Housely is looking for tenant names and basic tenancy information.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ],
+    ),
+  );
+}
+
+class DetectedTenantsScreen extends StatelessWidget {
+  const DetectedTenantsScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  bool get _hasDetectedNames => draft.detectedTenantNames.isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) => AccessScaffold(
+    eyebrow: 'Tenancy',
+    title: _hasDetectedNames
+        ? 'We found ${draft.detectedTenantNames.length} people'
+        : 'Tenancy details not added yet',
+    message: _hasDetectedNames
+        ? 'These names appear on the tenancy agreement. Review them before we continue.'
+        : 'You can continue setting up your Home and add tenancy details later.',
+    onBack: () => context.go('/tenancy-status'),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_hasDetectedNames) ...[
+          HouselyGroupedList(
+            children: draft.detectedTenantNames.map((name) {
+              final looksLikeCurrentUser = _looksLikeCurrentUser(name);
+
+              return HouselyMemberRow(
+                name: name,
+                role: 'Named on tenancy',
+                status: looksLikeCurrentUser
+                    ? 'Possible match'
+                    : 'Not connected',
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: HouselySpace.lg),
+
+          const HouselyPrivacyNotice(
+            title: 'No one has access yet',
+            message:
+                'Finding a name in the agreement does not automatically add that person to your Home.',
+          ),
+        ] else ...[
+          const HouselyMessageState(
+            kind: HouselyMessageKind.empty,
+            title: 'No tenancy document',
+            message:
+                'You can upload your tenancy later from your Home settings.',
+          ),
+        ],
+
+        const SizedBox(height: HouselySpace.xl),
+
+        HouselyButton(
+          label: _hasDetectedNames ? 'Review my match' : 'Continue setup',
+          onPressed: () {
+            if (_hasDetectedNames) {
+              context.replace('/tenant-match-placeholder');
+            } else {
+              context.replace('/invite-members');
+            }
+          },
+        ),
+
+        if (!_hasDetectedNames) ...[
+          const SizedBox(height: HouselySpace.sm),
+
+          HouselyButton(
+            label: 'Upload tenancy instead',
+            style: HouselyButtonStyle.text,
+            onPressed: () => context.replace('/upload-tenancy'),
+          ),
+        ],
+      ],
+    ),
+  );
+
+  bool _looksLikeCurrentUser(String tenantName) {
+    if (draft.name.trim().isEmpty) return false;
+
+    final appName = draft.name.toLowerCase();
+    final documentName = tenantName.toLowerCase();
+
+    return appName == documentName ||
+        documentName.contains(appName) ||
+        appName.contains(documentName);
+  }
+}
+
+class TenantMatchPlaceholderScreen extends StatelessWidget {
+  const TenantMatchPlaceholderScreen({required this.draft, super.key});
 
   final AccessDraft draft;
 
   @override
   Widget build(BuildContext context) => AccessScaffold(
     eyebrow: 'Tenancy',
-    title: 'Tenancy setup continues next',
-    message:
-        'Your relationship has been saved. Document upload and tenancy matching will be designed in the next phase.',
-    onBack: () => context.go('/tenancy-status'),
+    title: 'Identity review comes next',
+    message: 'The next step will confirm which tenancy name belongs to you.',
+    onBack: () => context.go('/tenancy-detected'),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const HouselyPrivacyNotice(
-          title: 'Saved locally for now',
+          title: 'Not verified yet',
           message:
-              'This prototype does not upload or process real tenancy documents yet.',
+              'A name match alone does not prove legal identity or tenancy status.',
         ),
 
         const SizedBox(height: HouselySpace.xl),
 
         HouselyButton(
-          label: 'Back to tenancy',
+          label: 'Back to detected tenants',
           style: HouselyButtonStyle.secondary,
-          onPressed: () => context.go('/tenancy-status'),
+          onPressed: () => context.go('/tenancy-detected'),
         ),
       ],
     ),
@@ -945,7 +1310,11 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
           address: widget.draft.formattedAddress.isEmpty
               ? 'Household'
               : widget.draft.formattedAddress,
-          members: [widget.draft.name.isEmpty ? 'You' : widget.draft.name],
+          members: [
+            widget.draft.name.isEmpty
+                ? 'Muhammad Shaheer Shoukathali'
+                : widget.draft.name,
+          ],
         ),
         const SizedBox(height: HouselySpace.xl),
         HouselyField(

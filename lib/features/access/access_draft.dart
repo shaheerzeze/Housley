@@ -6,8 +6,8 @@ class AccessDraft {
   String email = '';
   String password = '';
   // Sign in / password recovery
-String signInEmail = '';
-String resetEmail = '';
+  String signInEmail = '';
+  String resetEmail = '';
 
   // Home
   String homeName = '';
@@ -20,9 +20,14 @@ String resetEmail = '';
   // Tenancy
   TenancyRelationship? tenancyRelationship;
 
-  // Later phases
   String? tenancyDocumentName;
+  String? tenancyDocumentType;
+  int? tenancyDocumentSizeBytes;
+
   bool tenancySkipped = false;
+  bool tenancyProcessingComplete = false;
+
+  final List<String> detectedTenantNames = [];
 
   // Members
   final List<String> invites = [];

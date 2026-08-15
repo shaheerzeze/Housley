@@ -258,4 +258,74 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('tenancy upload exposes document choice', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/upload-tenancy'),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add your tenancy agreement'), findsOneWidget);
+
+    expect(find.text('Choose document'), findsOneWidget);
+  });
+
+  testWidgets('mock tenancy upload enables Continue', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/upload-tenancy'),
+    );
+
+    await tester.pumpAndSettle();
+
+    final chooseDocument = find.text('Choose document');
+
+    expect(chooseDocument, findsOneWidget);
+
+    await tester.ensureVisible(chooseDocument);
+    await tester.pumpAndSettle();
+
+    await tester.tap(chooseDocument);
+
+    await tester.pump();
+
+    // Fake upload takes 650ms.
+    await tester.pump(const Duration(milliseconds: 700));
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('tenancy-agreement.pdf'), findsOneWidget);
+
+    final continueButton = find.text('Continue');
+
+    expect(continueButton, findsOneWidget);
+
+    await tester.ensureVisible(continueButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(continueButton);
+
+    // Allow the /tenancy-processing route to render.
+    // Allow the full mock processing sequence to complete.
+    await tester.pump(const Duration(seconds: 3));
+
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('We found'), findsOneWidget);
+  });
+  testWidgets('tenancy processing reaches detected tenants', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-processing'),
+    );
+
+    await tester.pump();
+
+    expect(find.text('Reading your agreement'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 3));
+
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('We found'), findsOneWidget);
+  });
 }
