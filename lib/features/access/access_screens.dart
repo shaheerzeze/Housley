@@ -109,7 +109,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
   @override
   Widget build(BuildContext context) => AccessScaffold(
-    eyebrow: 'Step 1 of 5',
+    eyebrow: 'Account',
     title: 'Create your account',
     message:
         'Start with the minimum information needed to identify you securely.',
@@ -173,7 +173,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
   @override
   Widget build(BuildContext context) => AccessScaffold(
-    eyebrow: 'Step 2 of 5',
+    eyebrow: 'Account',
     title: 'Check your email',
     message:
         'We sent a verification link to ${widget.draft.email.isEmpty ? 'your email address' : widget.draft.email}.',
@@ -216,36 +216,57 @@ class StartChoiceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AccessScaffold(
-    eyebrow: 'Step 3 of 5',
-    title: 'How would you like to start?',
+    eyebrow: 'Getting started',
+    title: 'How are you getting started?',
     message:
-        'You can create one active Home, join an invitation, or keep personal records without a Home.',
+        'Set up your own Home or join a household that already uses Housely.',
     onBack: () => context.go('/verify-email'),
     child: Column(
       children: [
         HouselySelectionTile(
           title: 'Create a Home',
           subtitle:
-              'Set up your household and invite the people you live with.',
+              'Set up your property, tenancy, household and shared costs.',
           icon: Icons.home_outlined,
-          selected: true,
+          selected: false,
           onTap: () => context.go('/create-home'),
         ),
         const SizedBox(height: HouselySpace.sm),
         HouselySelectionTile(
-          title: 'Join with an invitation',
-          subtitle: 'Open a link or enter the code sent by a household admin.',
-          icon: Icons.mail_outline_rounded,
+          title: 'Join a Home',
+          subtitle:
+              'Accept an invitation or request to join an existing household.',
+          icon: Icons.group_add_outlined,
           selected: false,
-          onTap: () {},
+          onTap: () => context.go('/join-home'),
         ),
-        const SizedBox(height: HouselySpace.sm),
-        HouselySelectionTile(
-          title: 'Continue without a Home',
-          subtitle: 'Use your personal Vault and Stuff records for now.',
-          icon: Icons.person_outline_rounded,
-          selected: false,
-          onTap: () => context.go('/home'),
+      ],
+    ),
+  );
+}
+
+class JoinHomePlaceholderScreen extends StatelessWidget {
+  const JoinHomePlaceholderScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => AccessScaffold(
+    eyebrow: 'Join a Home',
+    title: 'Join your household',
+    message: 'Invitations and Home join requests will be available here.',
+    onBack: () => context.go('/start-choice'),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const HouselyPrivacyNotice(
+          title: 'Access stays private',
+          message:
+              'You won’t see Household information until your membership has been accepted.',
+        ),
+        const SizedBox(height: HouselySpace.xl),
+        HouselyButton(
+          label: 'Back',
+          style: HouselyButtonStyle.secondary,
+          onPressed: () => context.go('/start-choice'),
         ),
       ],
     ),
@@ -264,67 +285,332 @@ class _CreateHomeScreenState extends State<CreateHomeScreen> {
   late final TextEditingController _name = TextEditingController(
     text: widget.draft.homeName,
   );
-  late final TextEditingController _address = TextEditingController(
-    text: widget.draft.address,
+
+  late final TextEditingController _postcode = TextEditingController(
+    text: widget.draft.postcode,
   );
-  bool _disclosure = false;
+
+  late final TextEditingController _addressLine1 = TextEditingController(
+    text: widget.draft.addressLine1,
+  );
+
+  late final TextEditingController _addressLine2 = TextEditingController(
+    text: widget.draft.addressLine2,
+  );
+
+  late final TextEditingController _city = TextEditingController(
+    text: widget.draft.city,
+  );
+
+  bool _showManualAddress = false;
+  String? _selectedMockAddress;
+  bool _addressSearchPerformed = false;
+
+  bool get _canContinue =>
+      _name.text.trim().isNotEmpty &&
+      _addressLine1.text.trim().isNotEmpty &&
+      _city.text.trim().isNotEmpty &&
+      _postcode.text.trim().isNotEmpty;
+
+  List<String> get _mockAddresses {
+    final postcode = _postcode.text.trim().toUpperCase();
+
+    if (postcode == 'EH2 2LE') {
+      return [
+        '24 George Street, Edinburgh, EH2 2LE',
+        '26 George Street, Edinburgh, EH2 2LE',
+        '28 George Street, Edinburgh, EH2 2LE',
+      ];
+    }
+
+    return [];
+  }
+
+  void _selectAddress(String address) {
+    setState(() {
+      _selectedMockAddress = address;
+
+      if (address.startsWith('24 ')) {
+        _addressLine1.text = '24 George Street';
+      } else if (address.startsWith('26 ')) {
+        _addressLine1.text = '26 George Street';
+      } else {
+        _addressLine1.text = '28 George Street';
+      }
+
+      _city.text = 'Edinburgh';
+    });
+  }
+
+  void _continue() {
+    if (!_canContinue) return;
+
+    widget.draft
+      ..homeName = _name.text.trim()
+      ..addressLine1 = _addressLine1.text.trim()
+      ..addressLine2 = _addressLine2.text.trim()
+      ..city = _city.text.trim()
+      ..postcode = _postcode.text.trim().toUpperCase();
+
+    context.go('/tenancy-status');
+  }
 
   @override
   void dispose() {
     _name.dispose();
-    _address.dispose();
+    _postcode.dispose();
+    _addressLine1.dispose();
+    _addressLine2.dispose();
+    _city.dispose();
     super.dispose();
   }
 
   @override
+  @override
   Widget build(BuildContext context) => AccessScaffold(
-    eyebrow: 'Step 4 of 5',
-    title: 'Create your Home',
+    eyebrow: 'Home',
+    title: 'Tell us about your home',
     message:
-        'Give this household a familiar name. Housely uses one active Home, so there is no hidden switcher.',
+        'We’ll use this to organise everything connected to your household.',
     onBack: () => context.go('/start-choice'),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const HouselyPrivacyNotice(
-          title: 'Household information',
+          title: 'Your address stays private',
           message:
-              'The full address is sensitive and is visible only to accepted Home members.',
+              'The full address is visible only to accepted members of this Home.',
         ),
+
         const SizedBox(height: HouselySpace.lg),
+
         HouselyField(
           label: 'Home name',
           hint: 'George Street Flat',
           controller: _name,
           onChanged: (_) => setState(() {}),
         ),
+
         const SizedBox(height: HouselySpace.md),
+
         HouselyField(
-          label: 'Full address',
-          hint: '18 George Street, Edinburgh',
-          controller: _address,
-          onChanged: (_) => setState(() {}),
-        ),
-        const SizedBox(height: HouselySpace.md),
-        HouselyCheckbox(
-          label: 'This is a rented Home',
-          supportingText:
-              'This helps tailor Deposit Guard guidance. It is not landlord-certified.',
-          value: _disclosure,
-          onChanged: (value) => setState(() => _disclosure = value ?? false),
-        ),
-        const SizedBox(height: HouselySpace.xl),
-        HouselyButton(
-          label: 'Create Home',
-          state: _name.text.trim().isEmpty || _address.text.trim().isEmpty
-              ? HouselyComponentState.disabled
-              : HouselyComponentState.idle,
-          onPressed: () {
-            widget.draft
-              ..homeName = _name.text.trim()
-              ..address = _address.text.trim();
-            context.go('/invite-members');
+          label: 'Postcode',
+          hint: 'EH2 2LE',
+          controller: _postcode,
+          onChanged: (_) {
+            setState(() {
+              _addressSearchPerformed = false;
+              _selectedMockAddress = null;
+            });
           },
+        ),
+
+        const SizedBox(height: HouselySpace.sm),
+
+        HouselyButton(
+          label: 'Find address',
+          style: HouselyButtonStyle.secondary,
+          onPressed: _postcode.text.trim().isEmpty
+              ? null
+              : () {
+                  setState(() {
+                    _addressSearchPerformed = true;
+                  });
+                },
+        ),
+
+        if (_addressSearchPerformed && _mockAddresses.isNotEmpty) ...[
+          const SizedBox(height: HouselySpace.md),
+
+          HouselyGroupedList(
+            children: _mockAddresses.map((address) {
+              return ListTile(
+                title: Text(address),
+                trailing: _selectedMockAddress == address
+                    ? const Icon(Icons.check_rounded)
+                    : const Icon(Icons.chevron_right_rounded),
+                onTap: () => _selectAddress(address),
+              );
+            }).toList(),
+          ),
+        ],
+
+        if (_addressSearchPerformed && _mockAddresses.isEmpty) ...[
+          const SizedBox(height: HouselySpace.md),
+
+          const HouselyMessageState(
+            kind: HouselyMessageKind.empty,
+            title: 'No address found',
+            message:
+                'Try EH2 2LE for the prototype, or enter your address manually.',
+          ),
+        ],
+
+        const SizedBox(height: HouselySpace.sm),
+
+        HouselyButton(
+          label: _showManualAddress
+              ? 'Hide manual address'
+              : 'Enter address manually',
+          style: HouselyButtonStyle.text,
+          onPressed: () {
+            setState(() {
+              _showManualAddress = !_showManualAddress;
+
+              if (_showManualAddress) {
+                _selectedMockAddress = null;
+              }
+            });
+          },
+        ),
+
+        if (_showManualAddress) ...[
+          const SizedBox(height: HouselySpace.md),
+
+          HouselyField(
+            label: 'Address line 1',
+            hint: '24 George Street',
+            controller: _addressLine1,
+            onChanged: (_) => setState(() {}),
+          ),
+
+          const SizedBox(height: HouselySpace.md),
+
+          HouselyField(
+            label: 'Address line 2',
+            hint: 'Flat 4B (optional)',
+            controller: _addressLine2,
+            onChanged: (_) => setState(() {}),
+          ),
+
+          const SizedBox(height: HouselySpace.md),
+
+          HouselyField(
+            label: 'City',
+            hint: 'Edinburgh',
+            controller: _city,
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
+
+        if (_selectedMockAddress != null) ...[
+          const SizedBox(height: HouselySpace.lg),
+
+          HouselyMessageState(
+            kind: HouselyMessageKind.success,
+            title: 'Address selected',
+            message: _selectedMockAddress!,
+          ),
+        ],
+
+        const SizedBox(height: HouselySpace.xl),
+
+        HouselyButton(
+          label: 'Continue',
+          state: _canContinue
+              ? HouselyComponentState.idle
+              : HouselyComponentState.disabled,
+          onPressed: _canContinue ? _continue : null,
+        ),
+      ],
+    ),
+  );
+}
+
+class TenancyStatusScreen extends StatelessWidget {
+  const TenancyStatusScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  void _select(BuildContext context, TenancyRelationship relationship) {
+    draft.tenancyRelationship = relationship;
+
+    switch (relationship) {
+      case TenancyRelationship.namedOnTenancy:
+        context.go('/tenancy-next');
+        break;
+
+      case TenancyRelationship.notNamedOnTenancy:
+        context.go('/tenancy-next');
+        break;
+
+      case TenancyRelationship.unsure:
+        context.go('/tenancy-next');
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AccessScaffold(
+    eyebrow: 'Tenancy',
+    title: 'Are you named on the tenancy?',
+    message:
+        'This helps Housely understand your relationship to ${draft.homeName.isEmpty ? 'this Home' : draft.homeName} and set the right household permissions.',
+    onBack: () => context.go('/create-home'),
+    child: Column(
+      children: [
+        HouselySelectionTile(
+          title: 'Yes, I’m named on the tenancy',
+          subtitle: 'You’ll add or upload your tenancy details next.',
+          icon: Icons.description_outlined,
+          selected:
+              draft.tenancyRelationship == TenancyRelationship.namedOnTenancy,
+          onTap: () => _select(context, TenancyRelationship.namedOnTenancy),
+        ),
+
+        const SizedBox(height: HouselySpace.sm),
+
+        HouselySelectionTile(
+          title: 'No, I’m not on the tenancy',
+          subtitle: 'I live here, but I’m not named on the agreement.',
+          icon: Icons.home_outlined,
+          selected:
+              draft.tenancyRelationship ==
+              TenancyRelationship.notNamedOnTenancy,
+          onTap: () => _select(context, TenancyRelationship.notNamedOnTenancy),
+        ),
+
+        const SizedBox(height: HouselySpace.sm),
+
+        HouselySelectionTile(
+          title: 'I’m not sure',
+          subtitle: 'You can confirm your tenancy relationship later.',
+          icon: Icons.help_outline_rounded,
+          selected: draft.tenancyRelationship == TenancyRelationship.unsure,
+          onTap: () => _select(context, TenancyRelationship.unsure),
+        ),
+      ],
+    ),
+  );
+}
+
+class TenancyNextPlaceholderScreen extends StatelessWidget {
+  const TenancyNextPlaceholderScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  @override
+  Widget build(BuildContext context) => AccessScaffold(
+    eyebrow: 'Tenancy',
+    title: 'Tenancy setup continues next',
+    message:
+        'Your relationship has been saved. Document upload and tenancy matching will be designed in the next phase.',
+    onBack: () => context.go('/tenancy-status'),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const HouselyPrivacyNotice(
+          title: 'Saved locally for now',
+          message:
+              'This prototype does not upload or process real tenancy documents yet.',
+        ),
+
+        const SizedBox(height: HouselySpace.xl),
+
+        HouselyButton(
+          label: 'Back to tenancy',
+          style: HouselyButtonStyle.secondary,
+          onPressed: () => context.go('/tenancy-status'),
         ),
       ],
     ),
@@ -370,9 +656,9 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
           name: widget.draft.homeName.isEmpty
               ? 'Your Home'
               : widget.draft.homeName,
-          address: widget.draft.address.isEmpty
+          address: widget.draft.formattedAddress.isEmpty
               ? 'Household'
-              : widget.draft.address,
+              : widget.draft.formattedAddress,
           members: [widget.draft.name.isEmpty ? 'You' : widget.draft.name],
         ),
         const SizedBox(height: HouselySpace.xl),

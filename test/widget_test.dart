@@ -163,4 +163,45 @@ void main() {
     );
     expect(find.text('Delete account'), findsOneWidget);
   });
+  testWidgets('start choice exposes create and join Home paths', (
+  tester,
+) async {
+  await tester.pumpWidget(
+    const HouselyApp(initialLocation: '/start-choice'),
+  );
+
+  await tester.pumpAndSettle();
+
+  expect(find.text('Create a Home'), findsOneWidget);
+  expect(find.text('Join a Home'), findsOneWidget);
+
+  expect(
+    find.text('Continue without a Home'),
+    findsNothing,
+  );
+});
+testWidgets('tenancy status exposes all relationship choices', (
+  tester,
+) async {
+  await tester.pumpWidget(
+    const HouselyApp(initialLocation: '/tenancy-status'),
+  );
+
+  await tester.pumpAndSettle();
+
+  expect(
+    find.text('Yes, I’m named on the tenancy'),
+    findsOneWidget,
+  );
+
+  expect(
+    find.text('No, I’m not on the tenancy'),
+    findsOneWidget,
+  );
+
+  expect(
+    find.text('I’m not sure'),
+    findsOneWidget,
+  );
+});
 }

@@ -52,9 +52,24 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         builder: (context, state) => const StartChoiceScreen(),
       ),
       GoRoute(
+        path: '/join-home',
+        builder: (context, state) => const JoinHomePlaceholderScreen(),
+      ),
+      GoRoute(
         path: '/create-home',
         builder: (context, state) => CreateHomeScreen(draft: draft),
       ),
+      GoRoute(
+  path: '/tenancy-status',
+  builder: (context, state) =>
+      TenancyStatusScreen(draft: draft),
+),
+
+GoRoute(
+  path: '/tenancy-next',
+  builder: (context, state) =>
+      TenancyNextPlaceholderScreen(draft: draft),
+),
       GoRoute(
         path: '/invite-members',
         builder: (context, state) => InviteMembersScreen(draft: draft),
