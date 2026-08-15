@@ -5,6 +5,7 @@ import '../../design_system/components/components.dart';
 import '../../design_system/theme/housely_tokens.dart';
 import 'access_draft.dart';
 import 'access_scaffold.dart';
+import 'household_member.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -1673,58 +1674,446 @@ class TenancyMembersReviewScreen extends StatelessWidget {
   final AccessDraft draft;
 
   @override
-  Widget build(BuildContext context) => AccessScaffold(
-    eyebrow: 'Household',
-    title: 'Review tenancy members',
-    message:
-        'These people were found in the agreement. They are not automatically added to your Housely Home.',
-    onBack: () {
-      if (draft.namedTenantVerified) {
-        context.go('/tenancy-role');
-      } else {
-        context.go('/tenant-match-missing');
-      }
-    },
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        HouselyGroupedList(
-          children: draft.detectedTenantNames.map((name) {
-            final isCurrentUser = name == draft.matchedTenantName;
+  Widget build(BuildContext context) {
+    draft.initialiseHouseholdMembersFromTenancy();
 
-            return HouselyMemberRow(
-              name: name,
-              role: 'Named on tenancy',
-              status: isCurrentUser ? 'You · Verified' : 'Not connected',
-            );
-          }).toList(),
-        ),
+    return AccessScaffold(
+      eyebrow: 'Household',
+      title: 'Review tenancy members',
+      message:
+          'These people were found in the agreement. They are not automatically added to your Housely Home.',
+      onBack: () {
+        if (draft.namedTenantVerified) {
+          context.go('/tenancy-role');
+        } else {
+          context.go('/tenant-match-missing');
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          HouselyGroupedList(
+            children: draft.householdMembers.map((member) {
+              final status = switch (member.connectionStatus) {
+                HouseholdConnectionStatus.connected =>
+                  member.isCurrentUser ? 'You · Verified' : 'Connected',
 
-        const SizedBox(height: HouselySpace.lg),
+                HouseholdConnectionStatus.invitePending => 'Invite pending',
 
-        const HouselyPrivacyNotice(
-          title: 'Names do not create accounts',
-          message:
-              'Other tenancy members will only receive Home access after they are connected and accept an invitation.',
-        ),
+                HouseholdConnectionStatus.offApp => 'Off-app',
 
-        const SizedBox(height: HouselySpace.xl),
+                HouseholdConnectionStatus.notConnected => 'Not connected',
+              };
 
-        HouselyButton(
-          label: 'Connect household members',
-          onPressed: () => context.replace('/invite-members'),
-        ),
+              if (member.isCurrentUser) {
+                return HouselyMemberRow(
+                  name: member.name,
+                  role: 'Named on tenancy',
+                  status: status,
+                );
+              }
 
-        const SizedBox(height: HouselySpace.sm),
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(member.name),
+                subtitle: Text('Named on tenancy · $status'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () {
+                  draft.selectedTenantMemberId = member.id;
 
-        HouselyButton(
-          label: 'Do this later',
-          style: HouselyButtonStyle.text,
-          onPressed: () => context.replace('/tenancy-complete'),
-        ),
-      ],
-    ),
+                  draft.memberLookupPhone = '';
+                  draft.foundHouselyUserId = null;
+                  draft.foundHouselyUserName = null;
+                  draft.foundHouselyUserPhone = null;
+
+                  context.push('/connect-tenant-member');
+                },
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: HouselySpace.lg),
+
+          const HouselyPrivacyNotice(
+            title: 'Names do not create accounts',
+            message:
+                'Other tenancy members will only receive Home access after they are connected and accept an invitation.',
+          ),
+
+          const SizedBox(height: HouselySpace.xl),
+
+          HouselyButton(
+            label: 'Connect household members',
+            onPressed: () => context.replace('/invite-members'),
+          ),
+
+          const SizedBox(height: HouselySpace.sm),
+
+          HouselyButton(
+            label: 'Do this later',
+            style: HouselyButtonStyle.text,
+            onPressed: () => context.replace('/tenancy-complete'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ConnectTenantMemberScreen extends StatefulWidget {
+  const ConnectTenantMemberScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  @override
+  State<ConnectTenantMemberScreen> createState() =>
+      _ConnectTenantMemberScreenState();
+}
+
+class _ConnectTenantMemberScreenState extends State<ConnectTenantMemberScreen> {
+  late final TextEditingController _phone = TextEditingController(
+    text: widget.draft.memberLookupPhone,
   );
+
+  bool _searching = false;
+  bool _showError = false;
+
+  bool get _phoneValid {
+    final value = _phone.text.trim().replaceAll(' ', '').replaceAll('-', '');
+
+    return value.startsWith('+') && value.length >= 9;
+  }
+
+  Future<void> _search() async {
+    setState(() {
+      _showError = !_phoneValid;
+    });
+
+    if (!_phoneValid) return;
+
+    final normalisedPhone = _phone.text
+        .trim()
+        .replaceAll(' ', '')
+        .replaceAll('-', '');
+
+    widget.draft.memberLookupPhone = normalisedPhone;
+
+    setState(() {
+      _searching = true;
+    });
+
+    // MOCK LOOKUP ONLY.
+    // Later this becomes a repository/Supabase lookup.
+    await Future<void>.delayed(const Duration(milliseconds: 650));
+
+    if (!mounted) return;
+
+    setState(() {
+      _searching = false;
+    });
+
+    if (normalisedPhone == '+447700900123') {
+      widget.draft
+        ..foundHouselyUserId = 'mock-user-alex'
+        ..foundHouselyUserName = 'Alex Morgan'
+        ..foundHouselyUserPhone = normalisedPhone;
+
+      context.replace('/member-account-found');
+
+      return;
+    }
+
+    widget.draft
+      ..foundHouselyUserId = null
+      ..foundHouselyUserName = null
+      ..foundHouselyUserPhone = normalisedPhone;
+
+    context.replace('/member-account-not-found');
+  }
+
+  @override
+  void dispose() {
+    _phone.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final member = widget.draft.selectedTenantMember;
+
+    return AccessScaffold(
+      eyebrow: 'Household',
+      title: member == null
+          ? 'Connect tenancy member'
+          : 'Connect ${member.name}',
+      message:
+          'Enter their exact phone number. Housely will only match the complete verified number.',
+      onBack: () => context.pop(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (member != null)
+            HouselySurface(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    member.name,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+
+                  const SizedBox(height: HouselySpace.xs),
+
+                  Text(
+                    'Named on tenancy',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+
+          const SizedBox(height: HouselySpace.xl),
+
+          const HouselyPrivacyNotice(
+            title: 'Exact phone match only',
+            message:
+                'Housely does not show a public directory or suggestions while typing. The full verified phone number must match an account.',
+          ),
+
+          const SizedBox(height: HouselySpace.xl),
+
+          HouselyField(
+            label: 'Phone number',
+            hint: '+44 7700 900123',
+            type: HouselyFieldType.phone,
+            controller: _phone,
+            state: _showError && !_phoneValid
+                ? HouselyComponentState.error
+                : HouselyComponentState.idle,
+            errorText: 'Enter a valid phone number with country code.',
+            helperText: 'Use +44 7700 900123 to test an existing Housely user.',
+            onChanged: (_) {
+              setState(() {
+                _showError = false;
+              });
+            },
+          ),
+
+          const SizedBox(height: HouselySpace.xl),
+
+          HouselyButton(
+            label: 'Find Housely account',
+            state: _searching
+                ? HouselyComponentState.loading
+                : _phoneValid
+                ? HouselyComponentState.idle
+                : HouselyComponentState.disabled,
+            onPressed: _searching || !_phoneValid ? null : _search,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class MemberAccountNotFoundScreen extends StatelessWidget {
+  const MemberAccountNotFoundScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  @override
+  Widget build(BuildContext context) {
+    final member = draft.selectedTenantMember;
+
+    return AccessScaffold(
+      eyebrow: 'Household',
+      title: 'No Housely account found',
+      message:
+          'We couldn’t find an account with that exact verified phone number.',
+      onBack: () => context.go('/connect-tenant-member'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          HouselyMessageState(
+            kind: HouselyMessageKind.empty,
+            title: member == null
+                ? 'No account found'
+                : '${member.name} is not connected yet',
+            message:
+                'Phone: ${draft.foundHouselyUserPhone ?? draft.memberLookupPhone}',
+          ),
+
+          const SizedBox(height: HouselySpace.lg),
+
+          const HouselyPrivacyNotice(
+            title: 'Off-app members come next',
+            message:
+                'The next Phase 4 step will let you keep this person in the household without requiring a Housely account.',
+          ),
+
+          const SizedBox(height: HouselySpace.xl),
+
+          HouselyButton(
+            label: 'Try another number',
+            onPressed: () => context.go('/connect-tenant-member'),
+          ),
+
+          const SizedBox(height: HouselySpace.sm),
+
+          HouselyButton(
+            label: 'Back to tenancy members',
+            style: HouselyButtonStyle.secondary,
+            onPressed: () => context.go('/tenancy-members-review'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class MemberAccountFoundScreen extends StatelessWidget {
+  const MemberAccountFoundScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  void _sendInvite(BuildContext context) {
+    final member = draft.selectedTenantMember;
+
+    if (member == null || draft.foundHouselyUserId == null) {
+      return;
+    }
+
+    member
+      ..phone = draft.foundHouselyUserPhone
+      ..houselyUserId = draft.foundHouselyUserId
+      ..connectionStatus = HouseholdConnectionStatus.invitePending
+      ..invitationStatus = HouseholdInvitationStatus.pending;
+
+    context.replace('/member-invite-sent');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final member = draft.selectedTenantMember;
+
+    final detectedName = member?.name ?? 'Tenancy member';
+
+    final accountName = draft.foundHouselyUserName ?? 'Housely user';
+
+    final namesMatch =
+        detectedName.toLowerCase().trim() == accountName.toLowerCase().trim();
+
+    return AccessScaffold(
+      eyebrow: 'Household',
+      title: 'Housely account found',
+      message: 'Review the account before sending access to your Home.',
+      onBack: () => context.go('/connect-tenant-member'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          HouselySurface(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  accountName,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+
+                const SizedBox(height: HouselySpace.xs),
+
+                Text(
+                  draft.foundHouselyUserPhone ?? '',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+
+                const SizedBox(height: HouselySpace.sm),
+
+                HouselyMessageState(
+                  kind: namesMatch
+                      ? HouselyMessageKind.success
+                      : HouselyMessageKind.empty,
+                  title: namesMatch ? 'Name matches tenancy' : 'Check the name',
+                  message: namesMatch
+                      ? '$accountName matches $detectedName on the tenancy.'
+                      : 'The Housely account name is $accountName, while the tenancy says $detectedName.',
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: HouselySpace.lg),
+
+          const HouselyPrivacyNotice(
+            title: 'No access yet',
+            message:
+                'Finding an account does not add them to the Home. They must accept the invitation first.',
+          ),
+
+          const SizedBox(height: HouselySpace.xl),
+
+          HouselyButton(
+            label: 'Send Home invitation',
+            onPressed: () => _sendInvite(context),
+          ),
+
+          const SizedBox(height: HouselySpace.sm),
+
+          HouselyButton(
+            label: 'Use another number',
+            style: HouselyButtonStyle.text,
+            onPressed: () => context.go('/connect-tenant-member'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class MemberInviteSentScreen extends StatelessWidget {
+  const MemberInviteSentScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  @override
+  Widget build(BuildContext context) {
+    final member = draft.selectedTenantMember;
+
+    return AccessScaffold(
+      eyebrow: 'Household',
+      title: 'Invitation sent',
+      message: member == null
+          ? 'The invitation is waiting for acceptance.'
+          : '${member.name} must accept before receiving Home access.',
+      onBack: null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          HouselyMessageState(
+            kind: HouselyMessageKind.success,
+            title: 'Invite pending',
+            message:
+                '${member?.name ?? 'This person'} has been invited to your Home.',
+          ),
+
+          const SizedBox(height: HouselySpace.lg),
+
+          const HouselyPrivacyNotice(
+            title: 'Access remains locked',
+            message:
+                'Until the invitation is accepted, this person cannot see household data, documents or shared records.',
+          ),
+
+          const SizedBox(height: HouselySpace.xl),
+
+          HouselyButton(
+            label: 'Back to tenancy members',
+            onPressed: () => context.go('/tenancy-members-review'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class TenancySetupCompleteScreen extends StatelessWidget {

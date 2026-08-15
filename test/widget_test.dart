@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:housely/app/housely_app.dart';
+import 'package:housely/design_system/components/buttons.dart';
 
 void main() {
   testWidgets('accessibility review exposes the Phase 13 checks', (
@@ -541,5 +542,152 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Your tenancy setup is saved'), findsOneWidget);
+  });
+  testWidgets('tenancy member can open phone connection flow', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-processing'),
+    );
+
+    await tester.pump();
+
+    await tester.pump(const Duration(seconds: 3));
+
+    await tester.pumpAndSettle();
+
+    final reviewMatch = find.text('Review my match');
+
+    await tester.ensureVisible(reviewMatch);
+
+    await tester.tap(reviewMatch);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Muhammad Shaheer Shoukathali'));
+
+    await tester.pumpAndSettle();
+
+    final continueButton = find.text('Continue');
+
+    await tester.ensureVisible(continueButton);
+
+    await tester.tap(continueButton);
+    await tester.pumpAndSettle();
+
+    final confirmButton = find.text('Yes, this is me');
+
+    await tester.ensureVisible(confirmButton);
+
+    await tester.tap(confirmButton);
+    await tester.pumpAndSettle();
+
+    final roleContinue = find.text('Continue');
+
+    await tester.ensureVisible(roleContinue);
+
+    await tester.tap(roleContinue);
+    await tester.pumpAndSettle();
+
+    final alex = find.text('Alex Morgan');
+
+    await tester.ensureVisible(alex);
+
+    await tester.tap(alex);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Connect Alex Morgan'), findsOneWidget);
+
+    expect(find.text('Phone number'), findsOneWidget);
+  });
+
+  testWidgets('existing Housely user can be found and invited', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-processing'),
+    );
+
+    await tester.pump();
+
+    await tester.pump(const Duration(seconds: 3));
+
+    await tester.pumpAndSettle();
+
+    final reviewMatch = find.text('Review my match');
+
+    await tester.ensureVisible(reviewMatch);
+    await tester.tap(reviewMatch);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Muhammad Shaheer Shoukathali'));
+    await tester.pumpAndSettle();
+
+    final firstContinue = find.text('Continue');
+
+    await tester.ensureVisible(firstContinue);
+    await tester.tap(firstContinue);
+    await tester.pumpAndSettle();
+
+    final confirm = find.text('Yes, this is me');
+
+    await tester.ensureVisible(confirm);
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+
+    final roleContinue = find.text('Continue');
+
+    await tester.ensureVisible(roleContinue);
+    await tester.tap(roleContinue);
+    await tester.pumpAndSettle();
+
+    final alex = find.text('Alex Morgan');
+
+    await tester.ensureVisible(alex);
+    await tester.tap(alex);
+    await tester.pumpAndSettle();
+
+    final phoneField = find.byType(TextField);
+
+    await tester.enterText(phoneField.last, '+447700900123');
+
+    await tester.pumpAndSettle();
+
+    final findAccountButton = find.widgetWithText(
+      HouselyButton,
+      'Find Housely account',
+    );
+
+    expect(findAccountButton, findsOneWidget);
+
+    await tester.ensureVisible(findAccountButton);
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(findAccountButton);
+
+    await tester.pump();
+
+    await tester.pump(const Duration(milliseconds: 700));
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Housely account found'), findsOneWidget);
+
+    // Now we are on the account-found screen,
+    // so the invitation button should exist.
+    final sendInviteButton = find.widgetWithText(
+      HouselyButton,
+      'Send Home invitation',
+    );
+
+    expect(sendInviteButton, findsOneWidget);
+
+    await tester.ensureVisible(sendInviteButton);
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(sendInviteButton);
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Invitation sent'), findsOneWidget);
+
+    expect(find.text('Invite pending'), findsOneWidget);
   });
 }

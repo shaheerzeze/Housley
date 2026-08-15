@@ -122,6 +122,26 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         path: '/tenancy-complete',
         builder: (context, state) => TenancySetupCompleteScreen(draft: draft),
       ),
+
+      GoRoute(
+        path: '/connect-tenant-member',
+        builder: (context, state) => ConnectTenantMemberScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/member-account-found',
+        builder: (context, state) => MemberAccountFoundScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/member-account-not-found',
+        builder: (context, state) => MemberAccountNotFoundScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/member-invite-sent',
+        builder: (context, state) => MemberInviteSentScreen(draft: draft),
+      ),
       GoRoute(
         path: '/invite-members',
         builder: (context, state) => InviteMembersScreen(draft: draft),
