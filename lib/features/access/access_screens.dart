@@ -1439,8 +1439,8 @@ class _InviteMembersScreenState extends State<InviteMembersScreen> {
         ),
         const SizedBox(height: HouselySpace.xl),
         HouselyField(
-          label: 'Email or name',
-          hint: 'alex@example.com',
+          label: 'Phone number',
+          hint: '+44 7700 900123',
           controller: _invite,
           onChanged: (_) => setState(() {}),
         ),

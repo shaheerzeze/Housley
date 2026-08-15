@@ -58,10 +58,9 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         builder: (context, state) => CreateAccountScreen(draft: draft),
       ),
       GoRoute(
-  path: '/verify-phone',
-  builder: (context, state) =>
-      VerifyPhoneScreen(draft: draft),
-),
+        path: '/verify-phone',
+        builder: (context, state) => VerifyPhoneScreen(draft: draft),
+      ),
       GoRoute(
         path: '/start-choice',
         builder: (context, state) => const StartChoiceScreen(),
