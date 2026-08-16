@@ -13,10 +13,13 @@ class HouselyField extends StatefulWidget {
     this.controller,
     this.type = HouselyFieldType.text,
     this.state = HouselyComponentState.idle,
+    this.textCapitalization = TextCapitalization.none,
+    this.inputFormatters,
     this.helperText,
     this.errorText,
     this.onChanged,
     this.onDateTap,
+
     super.key,
   });
 
@@ -29,6 +32,8 @@ class HouselyField extends StatefulWidget {
   final String? errorText;
   final ValueChanged<String>? onChanged;
   final VoidCallback? onDateTap;
+  final TextCapitalization textCapitalization;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   State<HouselyField> createState() => _HouselyFieldState();
@@ -68,9 +73,11 @@ class _HouselyFieldState extends State<HouselyField> {
         HouselyFieldType.password => const [AutofillHints.password],
         _ => null,
       },
-      inputFormatters: widget.type == HouselyFieldType.money
-          ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))]
-          : null,
+      inputFormatters:
+          widget.inputFormatters ??
+          (widget.type == HouselyFieldType.money
+              ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))]
+              : null),
       decoration: InputDecoration(
         labelText: widget.label,
         hintText: widget.hint,
@@ -84,6 +91,7 @@ class _HouselyFieldState extends State<HouselyField> {
         prefixIcon: _prefix,
         suffixIcon: _suffix(isPassword),
       ),
+      textCapitalization: widget.textCapitalization,
     );
   }
 

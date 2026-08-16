@@ -438,6 +438,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         HouselyField(
           label: 'Full name',
           controller: _name,
+          textCapitalization: TextCapitalization.words,
           onChanged: (_) => setState(() {}),
         ),
 
@@ -629,7 +630,7 @@ class StartChoiceScreen extends StatelessWidget {
               'Accept an invitation or request to join an existing household.',
           icon: Icons.group_add_outlined,
           selected: false,
-          onTap: () => context.replace('/join-home'),
+          onTap: () => context.push('/join-home'),
         ),
       ],
     ),
@@ -801,29 +802,28 @@ class _CreateHomeScreenState extends State<CreateHomeScreen> {
           label: 'Home name',
           hint: 'George Street Flat',
           controller: _name,
+          textCapitalization: TextCapitalization.words,
           onChanged: (_) => setState(() {}),
         ),
 
         const SizedBox(height: HouselySpace.md),
 
         HouselyField(
-          label: 'Postcode',
-          hint: 'EH2 2LE',
-          controller: _postcode,
-          onChanged: (_) {
-            setState(() {
-              _addressSearchPerformed = false;
-
-              if (_selectedMockAddress != null) {
-                _addressLine1.clear();
-                _addressLine2.clear();
-                _city.clear();
-              }
-
-              _selectedMockAddress = null;
-            });
-          },
-        ),
+  label: 'Postcode',
+  hint: 'EH14 2PT',
+  controller: _postcode,
+  textCapitalization:
+      TextCapitalization.characters,
+  inputFormatters: const [
+    HouselyUkPostcodeFormatter(),
+  ],
+  onChanged: (_) {
+    setState(() {
+      _selectedMockAddress = null;
+      _addressSearchPerformed = false;
+    });
+  },
+),
 
         const SizedBox(height: HouselySpace.sm),
 

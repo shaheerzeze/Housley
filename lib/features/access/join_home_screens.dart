@@ -255,7 +255,9 @@ class _JoinHomeScreenState extends State<JoinHomeScreen> {
             label: 'Home code',
             hint: 'HSLY-7K4P9Q',
             controller: _code,
-            helperText: 'For the prototype, use HSLY-7K4P9Q.',
+            textCapitalization: TextCapitalization.characters,
+            inputFormatters: const [HouselyHomeCodeFormatter()],
+            helperText: 'Enter the code shared by your Home admin.',
             onChanged: (value) {
               widget.state.prefillCode(value);
               setState(() {});
@@ -402,15 +404,7 @@ class _ScanHomeQrScreenState extends State<ScanHomeQrScreen> {
                 },
               ),
             ),
-            Positioned(
-              top: HouselySpace.md,
-              left: HouselySpace.md,
-              child: IconButton.filledTonal(
-                tooltip: 'Back',
-                onPressed: () => context.pop(),
-                icon: const Icon(Icons.arrow_back_rounded),
-              ),
-            ),
+
             Center(
               child: IgnorePointer(
                 child: Container(
@@ -453,6 +447,18 @@ class _ScanHomeQrScreenState extends State<ScanHomeQrScreen> {
                       ),
                     ),
                   ],
+                  const SizedBox(height: HouselySpace.lg),
+
+                  TextButton(
+                    onPressed: () => context.pop(),
+                    child: const Text(
+                      'Go back',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

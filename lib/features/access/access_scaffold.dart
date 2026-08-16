@@ -22,7 +22,18 @@ class AccessScaffold extends StatelessWidget {
   final Widget? footer;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => 
+  PopScope(
+  canPop: onBack == null,
+  onPopInvokedWithResult: (
+    didPop,
+    result,
+  ) {
+    if (didPop) return;
+
+    onBack?.call();
+  },
+  child: Scaffold(
     appBar: onBack == null ? null : HouselyTopBar(title: '', onBack: onBack),
     body: SafeArea(
       child: LayoutBuilder(
@@ -69,5 +80,7 @@ class AccessScaffold extends StatelessWidget {
         ),
       ),
     ),
-  );
+  )
+
+);
 }
