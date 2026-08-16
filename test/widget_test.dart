@@ -690,4 +690,117 @@ void main() {
 
     expect(find.text('Invite pending'), findsOneWidget);
   });
+
+  testWidgets('unknown phone can create off-app member', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-processing'),
+    );
+
+    await tester.pump();
+
+    // Wait for mock tenancy processing.
+    await tester.pump(const Duration(seconds: 3));
+
+    await tester.pumpAndSettle();
+
+    // Review detected tenancy names.
+    final reviewMatch = find.text('Review my match');
+
+    await tester.ensureVisible(reviewMatch);
+    await tester.tap(reviewMatch);
+    await tester.pumpAndSettle();
+
+    // Select current user.
+    final currentUser = find.text('Muhammad Shaheer Shoukathali');
+
+    await tester.ensureVisible(currentUser);
+    await tester.tap(currentUser);
+    await tester.pumpAndSettle();
+
+    // Continue to confirmation.
+    final firstContinue = find.text('Continue');
+
+    await tester.ensureVisible(firstContinue);
+    await tester.tap(firstContinue);
+    await tester.pumpAndSettle();
+
+    // Confirm tenancy identity.
+    final confirm = find.text('Yes, this is me');
+
+    await tester.ensureVisible(confirm);
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+
+    // Continue through role/setup.
+    final roleContinue = find.text('Continue');
+
+    await tester.ensureVisible(roleContinue);
+    await tester.tap(roleContinue);
+    await tester.pumpAndSettle();
+
+    // Select Alex.
+    final alex = find.text('Alex Morgan');
+
+    await tester.ensureVisible(alex);
+    await tester.tap(alex);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Connect Alex Morgan'), findsOneWidget);
+
+    // Enter a phone number that does NOT
+    // belong to our mock Housely user.
+    final phoneField = find.byType(TextField);
+
+    expect(phoneField, findsWidgets);
+
+    await tester.enterText(phoneField.last, '+447700888888');
+
+    await tester.pumpAndSettle();
+
+    // Search Housely.
+    final findAccountButton = find.widgetWithText(
+      HouselyButton,
+      'Find Housely account',
+    );
+
+    expect(findAccountButton, findsOneWidget);
+
+    await tester.ensureVisible(findAccountButton);
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(findAccountButton);
+
+    await tester.pump();
+
+    // Wait for mock lookup.
+    await tester.pump(const Duration(milliseconds: 700));
+
+    await tester.pumpAndSettle();
+
+    // Unknown number should reach
+    // the account-not-found screen.
+    expect(find.text('No Housely account found'), findsOneWidget);
+
+    // Add Alex without a Housely account.
+    final addOffAppButton = find.widgetWithText(
+      HouselyButton,
+      'Add as off-app member',
+    );
+
+    expect(addOffAppButton, findsOneWidget);
+
+    await tester.ensureVisible(addOffAppButton);
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(addOffAppButton);
+
+    await tester.pumpAndSettle();
+
+    // Confirmation screen.
+    expect(find.text('Off-app member added'), findsOneWidget);
+
+    expect(find.textContaining('Alex Morgan'), findsWidgets);
+  });
 }

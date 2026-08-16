@@ -137,14 +137,40 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         path: '/member-account-not-found',
         builder: (context, state) => MemberAccountNotFoundScreen(draft: draft),
       ),
-
+      GoRoute(
+        path: '/off-app-member-added',
+        builder: (context, state) => OffAppMemberAddedScreen(draft: draft),
+      ),
       GoRoute(
         path: '/member-invite-sent',
         builder: (context, state) => MemberInviteSentScreen(draft: draft),
       ),
       GoRoute(
+        path: '/home-invitation',
+        builder: (context, state) => HomeInvitationScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/home-invitation-accepted',
+        builder: (context, state) => HomeInvitationAcceptedScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/home-invitation-declined',
+        builder: (context, state) => HomeInvitationDeclinedScreen(draft: draft),
+      ),
+      GoRoute(
         path: '/invite-members',
         builder: (context, state) => InviteMembersScreen(draft: draft),
+      ),
+      GoRoute(
+        path: '/member-access',
+        builder: (context, state) => MemberAccessScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/member-access-saved',
+        builder: (context, state) => MemberAccessSavedScreen(draft: draft),
       ),
       GoRoute(
         path: '/attention',

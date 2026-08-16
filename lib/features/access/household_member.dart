@@ -7,6 +7,8 @@ enum HouseholdConnectionStatus {
   offApp,
 }
 
+enum HouseholdAppRole { setupAdmin, standard, guest }
+
 enum HouseholdInvitationStatus { none, pending, accepted, declined, cancelled }
 
 class HouseholdMemberPermissions {
@@ -16,6 +18,7 @@ class HouseholdMemberPermissions {
     this.canManageSharedBills = false,
     this.canViewTenancyDocuments = false,
     this.canManageHomeSettings = false,
+    this.canManageMemberPermissions = false,
   });
 
   final bool canInviteMembers;
@@ -23,7 +26,7 @@ class HouseholdMemberPermissions {
   final bool canManageSharedBills;
   final bool canViewTenancyDocuments;
   final bool canManageHomeSettings;
-
+  final bool canManageMemberPermissions;
   static const standardNamedTenant = HouseholdMemberPermissions(
     canManageSharedBills: true,
     canViewTenancyDocuments: true,
@@ -35,6 +38,7 @@ class HouseholdMemberPermissions {
     canManageSharedBills: true,
     canViewTenancyDocuments: true,
     canManageHomeSettings: true,
+    canManageMemberPermissions: true,
   );
 
   static const householdMember = HouseholdMemberPermissions(
@@ -56,6 +60,7 @@ class HouseholdMember {
     this.connectionStatus = HouseholdConnectionStatus.notConnected,
     this.invitationStatus = HouseholdInvitationStatus.none,
     this.permissions = HouseholdMemberPermissions.standardNamedTenant,
+    this.appRole = HouseholdAppRole.standard,
   });
 
   final String id;
@@ -67,6 +72,7 @@ class HouseholdMember {
   String? houselyUserId;
 
   HouseholdMemberType type;
+  HouseholdAppRole appRole;
 
   bool isCurrentUser;
   bool isVerifiedNamedTenant;
@@ -79,4 +85,31 @@ class HouseholdMember {
   bool get isLinkedToHousely => houselyUserId != null;
 
   bool get isNamedTenant => type == HouseholdMemberType.namedTenant;
+  bool get isOffApp => connectionStatus == HouseholdConnectionStatus.offApp;
+
+  bool get hasPendingInvite =>
+      invitationStatus == HouseholdInvitationStatus.pending;
+}
+
+HouseholdMemberPermissions permissionsForMember({
+  required HouseholdMemberType type,
+  required HouseholdAppRole role,
+}) {
+  if (role == HouseholdAppRole.setupAdmin) {
+    return HouseholdMemberPermissions.setupAdmin;
+  }
+
+  if (role == HouseholdAppRole.guest) {
+    return HouseholdMemberPermissions.guest;
+  }
+
+  return switch (type) {
+    HouseholdMemberType.namedTenant =>
+      HouseholdMemberPermissions.standardNamedTenant,
+
+    HouseholdMemberType.householdMember =>
+      HouseholdMemberPermissions.householdMember,
+
+    HouseholdMemberType.guest => HouseholdMemberPermissions.guest,
+  };
 }

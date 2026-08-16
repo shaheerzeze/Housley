@@ -72,6 +72,24 @@ class AccessDraft {
   String? foundHouselyUserName;
   String? foundHouselyUserPhone;
 
+  /// Mock incoming invitation context.
+  /// Later this comes from the backend.
+  String? incomingInvitationMemberId;
+
+  HouseholdMember? get incomingInvitationMember {
+    final id = incomingInvitationMemberId;
+
+    if (id == null) return null;
+
+    for (final member in householdMembers) {
+      if (member.id == id) {
+        return member;
+      }
+    }
+
+    return null;
+  }
+
   HouseholdMember? get selectedTenantMember {
     final id = selectedTenantMemberId;
 
@@ -105,6 +123,9 @@ class AccessDraft {
           id: 'tenancy-member-$index',
           name: tenantName,
           type: HouseholdMemberType.namedTenant,
+          appRole: isYou && homeSetupAdmin
+              ? HouseholdAppRole.setupAdmin
+              : HouseholdAppRole.standard,
           isCurrentUser: isYou,
           isVerifiedNamedTenant: isYou && namedTenantVerified,
           connectionStatus: isYou
