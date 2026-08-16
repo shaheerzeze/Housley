@@ -142,9 +142,66 @@ class AccessDraft {
           permissions: isYou && homeSetupAdmin
               ? HouseholdMemberPermissions.setupAdmin
               : HouseholdMemberPermissions.standardNamedTenant,
+          tenancyReviewStatus: isYou
+              ? TenancyMemberReviewStatus.confirmed
+              : TenancyMemberReviewStatus.needsReview,
         ),
       );
     }
+  }
+
+  void resetMemberLookup() {
+    selectedTenantMemberId = null;
+
+    memberLookupPhone = '';
+
+    foundHouselyUserId = null;
+    foundHouselyUserName = null;
+    foundHouselyUserPhone = null;
+
+    incomingInvitationMemberId = null;
+  }
+
+  void resetHouseholdFromTenancy() {
+    householdMembers.clear();
+
+    invites.clear();
+
+    householdMemberSequence = 0;
+
+    resetMemberLookup();
+  }
+
+  void resetTenancyIdentity() {
+    matchedTenantName = null;
+
+    tenancyIdentityConfirmed = false;
+    namedTenantVerified = false;
+
+    homeSetupAdmin = false;
+
+    resetHouseholdFromTenancy();
+  }
+
+  void resetProcessedTenancy() {
+    tenancyProcessingComplete = false;
+
+    detectedTenantNames.clear();
+
+    resetTenancyIdentity();
+  }
+
+  void resetTenancy() {
+    tenancyRelationship = null;
+
+    tenancyDocumentName = null;
+    tenancyDocumentType = null;
+    tenancyDocumentSizeBytes = null;
+
+    tenancySkipped = false;
+    tenancySetupComplete = false;
+
+    resetProcessedTenancy();
   }
 
   String get formattedAddress {

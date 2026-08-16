@@ -744,12 +744,32 @@ class _CreateHomeScreenState extends State<CreateHomeScreen> {
   void _continue() {
     if (!_canContinue) return;
 
+    final newAddressLine1 = _addressLine1.text.trim();
+
+    final newAddressLine2 = _addressLine2.text.trim();
+
+    final newCity = _city.text.trim();
+
+    final newPostcode = _postcode.text.trim().toUpperCase();
+
+    // Only changing the actual property should
+    // invalidate the tenancy.
+    final propertyChanged =
+        widget.draft.addressLine1 != newAddressLine1 ||
+        widget.draft.addressLine2 != newAddressLine2 ||
+        widget.draft.city != newCity ||
+        widget.draft.postcode != newPostcode;
+
+    if (propertyChanged) {
+      widget.draft.resetTenancy();
+    }
+
     widget.draft
       ..homeName = _name.text.trim()
-      ..addressLine1 = _addressLine1.text.trim()
-      ..addressLine2 = _addressLine2.text.trim()
-      ..city = _city.text.trim()
-      ..postcode = _postcode.text.trim().toUpperCase();
+      ..addressLine1 = newAddressLine1
+      ..addressLine2 = newAddressLine2
+      ..city = newCity
+      ..postcode = newPostcode;
 
     context.replace('/tenancy-status');
   }
@@ -931,6 +951,21 @@ class TenancyStatusScreen extends StatelessWidget {
   final AccessDraft draft;
 
   void _select(BuildContext context, TenancyRelationship relationship) {
+    {
+      // If the user changes their tenancy answer,
+      // remove any state that depended on the old answer.
+      if (draft.tenancyRelationship != relationship) {
+        draft
+          ..tenancyDocumentName = null
+          ..tenancyDocumentType = null
+          ..tenancyDocumentSizeBytes = null
+          ..tenancySkipped = false
+          ..tenancySetupComplete = false;
+
+        draft.resetProcessedTenancy();
+      }
+    }
+
     draft.tenancyRelationship = relationship;
 
     switch (relationship) {
@@ -1008,9 +1043,18 @@ class _UploadTenancyScreenState extends State<UploadTenancyScreen> {
 
   Future<void> _chooseMockDocument() async {
     setState(() {
-      _uploading = true;
-    });
+      // A new document means the old detected people,
+      // identity match and member states are no longer valid.
+      widget.draft.resetProcessedTenancy();
 
+      widget.draft
+        ..tenancyDocumentName = 'tenancy-agreement.pdf'
+        ..tenancyDocumentType = 'PDF'
+        ..tenancyDocumentSizeBytes = 1840000
+        ..tenancySkipped = false;
+
+      _uploading = false;
+    });
     await Future<void>.delayed(const Duration(milliseconds: 650));
 
     if (!mounted) return;
@@ -1028,18 +1072,15 @@ class _UploadTenancyScreenState extends State<UploadTenancyScreen> {
 
   void _removeDocument() {
     setState(() {
+      widget.draft.resetProcessedTenancy();
+
       widget.draft
         ..tenancyDocumentName = null
         ..tenancyDocumentType = null
         ..tenancyDocumentSizeBytes = null
-        ..tenancyProcessingComplete = false
-        ..matchedTenantName = null
-        ..tenancyIdentityConfirmed = false
-        ..namedTenantVerified = false
-        ..homeSetupAdmin = false
-        ..tenancySetupComplete = false;
+        ..tenancySkipped = false;
 
-      widget.draft.detectedTenantNames.clear();
+      _uploading = false;
     });
   }
 
@@ -1668,20 +1709,222 @@ class TenancyRoleScreen extends StatelessWidget {
   );
 }
 
+class _TenancyReviewMemberRow extends StatelessWidget {
+  const _TenancyReviewMemberRow({
+    required this.member,
+    required this.status,
+    this.onTap,
+    this.onMore,
+  });
+
+  final HouseholdMember member;
+  final String status;
+  final VoidCallback? onTap;
+  final VoidCallback? onMore;
+
+  String get _initials {
+    final parts = member.name.trim().split(RegExp(r'\s+'));
+
+    if (parts.isEmpty) return '?';
+
+    if (parts.length == 1) {
+      return parts.first.substring(0, 1).toUpperCase();
+    }
+
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: HouselySpace.md,
+          vertical: HouselySpace.md,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            CircleAvatar(radius: 20, child: Text(_initials)),
+
+            const SizedBox(width: HouselySpace.md),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    member.name,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+
+                  const SizedBox(height: 3),
+
+                  Text(
+                    member.tenancyReviewStatus ==
+                            TenancyMemberReviewStatus.needsReview
+                        ? 'Found in tenancy · Needs review'
+                        : 'Named on tenancy',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: HouselySpace.sm),
+
+            Text(status, style: Theme.of(context).textTheme.labelMedium),
+
+            if (onMore != null) ...[
+              const SizedBox(width: HouselySpace.xs),
+              IconButton(
+                icon: const Icon(Icons.more_vert_rounded),
+                onPressed: onMore,
+              ),
+            ] else if (onTap != null)
+              const Icon(Icons.chevron_right_rounded),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class TenancyMembersReviewScreen extends StatelessWidget {
   const TenancyMembersReviewScreen({required this.draft, super.key});
 
   final AccessDraft draft;
+  void _showDetectedNameActions(BuildContext context, HouseholdMember member) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(HouselySpace.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  member.name,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+
+                const SizedBox(height: HouselySpace.xs),
+
+                Text(
+                  'Housely found this name in the tenancy agreement.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+
+                const SizedBox(height: HouselySpace.lg),
+
+                HouselyButton(
+                  label: 'Confirm as tenancy member',
+                  onPressed: () {
+                    member.tenancyReviewStatus =
+                        TenancyMemberReviewStatus.confirmed;
+
+                    Navigator.of(sheetContext).pop();
+
+                    context.push('/connect-tenant-member');
+                  },
+                ),
+
+                const SizedBox(height: HouselySpace.sm),
+
+                HouselyButton(
+                  label: 'Not part of this household',
+                  style: HouselyButtonStyle.secondary,
+                  onPressed: () {
+                    member.tenancyReviewStatus =
+                        TenancyMemberReviewStatus.excluded;
+
+                    Navigator.of(sheetContext).pop();
+
+                    context.replace('/tenancy-members-review');
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showInvitationActions(BuildContext context, HouseholdMember member) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(HouselySpace.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  member.name,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+
+                const SizedBox(height: HouselySpace.lg),
+
+                HouselyButton(
+                  label: 'Resend invitation',
+                  onPressed: () {
+                    member.invitationStatus = HouseholdInvitationStatus.pending;
+
+                    member.connectionStatus =
+                        HouseholdConnectionStatus.invitePending;
+
+                    Navigator.of(sheetContext).pop();
+                  },
+                ),
+
+                const SizedBox(height: HouselySpace.sm),
+
+                HouselyButton(
+                  label: 'Cancel invitation',
+                  style: HouselyButtonStyle.destructive,
+                  onPressed: () {
+                    member.invitationStatus =
+                        HouseholdInvitationStatus.cancelled;
+
+                    member.connectionStatus =
+                        HouseholdConnectionStatus.notConnected;
+
+                    member.houselyUserId = null;
+
+                    Navigator.of(sheetContext).pop();
+
+                    context.replace('/tenancy-members-review');
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     draft.initialiseHouseholdMembersFromTenancy();
-
+    final visibleMembers = draft.householdMembers
+        .where(
+          (member) =>
+              member.tenancyReviewStatus != TenancyMemberReviewStatus.excluded,
+        )
+        .toList();
     return AccessScaffold(
       eyebrow: 'Household',
-      title: 'Review tenancy members',
+      title: 'Review people in your tenancy',
       message:
-          'These people were found in the agreement. They are not automatically added to your Housely Home.',
+          'We found these names in your agreement. Confirm who belongs to this Home and connect the people who will use Housely.',
       onBack: () {
         if (draft.namedTenantVerified) {
           context.go('/tenancy-role');
@@ -1693,53 +1936,91 @@ class TenancyMembersReviewScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           HouselyGroupedList(
-            children: draft.householdMembers.map((member) {
-              final status =
-                  member.invitationStatus == HouseholdInvitationStatus.declined
-                  ? 'Invite declined'
-                  : switch (member.connectionStatus) {
-                      HouseholdConnectionStatus.connected =>
-                        member.isCurrentUser ? 'You · Verified' : 'Connected',
-
-                      HouseholdConnectionStatus.invitePending =>
-                        'Invite pending',
-
-                      HouseholdConnectionStatus.offApp => 'Off-app',
-
-                      HouseholdConnectionStatus.notConnected => 'Not connected',
-                    };
+            children: visibleMembers.map((member) {
+              String status;
 
               if (member.isCurrentUser) {
-                return HouselyMemberRow(
-                  name: member.name,
-                  role: 'Named on tenancy',
-                  status: status,
-                );
+                status = 'Verified';
+              } else if (member.invitationStatus ==
+                  HouseholdInvitationStatus.pending) {
+                status = 'Invitation sent';
+              } else if (member.invitationStatus ==
+                  HouseholdInvitationStatus.declined) {
+                status = 'Invitation declined';
+              } else if (member.invitationStatus ==
+                  HouseholdInvitationStatus.cancelled) {
+                status = 'Not connected';
+              } else if (member.connectionStatus ==
+                  HouseholdConnectionStatus.connected) {
+                status = 'Connected';
+              } else if (member.connectionStatus ==
+                  HouseholdConnectionStatus.offApp) {
+                status = "Doesn't use Housely";
+              } else if (member.tenancyReviewStatus ==
+                  TenancyMemberReviewStatus.needsReview) {
+                status = 'Needs review';
+              } else {
+                status = 'Not connected';
               }
 
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(member.name),
-                subtitle: Text('Named on tenancy · $status'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () {
-                  draft.selectedTenantMemberId = member.id;
+              return _TenancyReviewMemberRow(
+                member: member,
+                status: status,
 
-                  if (member.connectionStatus ==
-                          HouseholdConnectionStatus.connected ||
-                      member.connectionStatus ==
-                          HouseholdConnectionStatus.offApp) {
-                    context.push('/member-access');
-                    return;
-                  }
+                onTap: member.isCurrentUser
+                    ? null
+                    : () {
+                        draft.selectedTenantMemberId = member.id;
 
-                  draft.memberLookupPhone = '';
-                  draft.foundHouselyUserId = null;
-                  draft.foundHouselyUserName = null;
-                  draft.foundHouselyUserPhone = null;
+                        // Name was detected from document,
+                        // but user has not confirmed it yet.
+                        if (member.tenancyReviewStatus ==
+                            TenancyMemberReviewStatus.needsReview) {
+                          _showDetectedNameActions(context, member);
+                          return;
+                        }
 
-                  context.push('/connect-tenant-member');
-                },
+                        // Invitation already sent.
+                        if (member.invitationStatus ==
+                            HouseholdInvitationStatus.pending) {
+                          _showInvitationActions(context, member);
+                          return;
+                        }
+
+                        // Already connected / stored.
+                        if (member.connectionStatus ==
+                                HouseholdConnectionStatus.connected ||
+                            member.connectionStatus ==
+                                HouseholdConnectionStatus.offApp) {
+                          context.push('/member-access');
+                          return;
+                        }
+
+                        // Confirmed tenancy member,
+                        // but not connected yet.
+                        draft.memberLookupPhone = '';
+                        draft.foundHouselyUserId = null;
+                        draft.foundHouselyUserName = null;
+                        draft.foundHouselyUserPhone = null;
+
+                        context.push('/connect-tenant-member');
+                      },
+
+                onMore: member.isCurrentUser
+                    ? null
+                    : member.invitationStatus ==
+                          HouseholdInvitationStatus.pending
+                    ? () {
+                        _showInvitationActions(context, member);
+                      }
+                    : member.tenancyReviewStatus ==
+                          TenancyMemberReviewStatus.needsReview
+                    ? () {
+                        draft.selectedTenantMemberId = member.id;
+
+                        _showDetectedNameActions(context, member);
+                      }
+                    : null,
               );
             }).toList(),
           ),
@@ -1747,16 +2028,26 @@ class TenancyMembersReviewScreen extends StatelessWidget {
           const SizedBox(height: HouselySpace.lg),
 
           const HouselyPrivacyNotice(
-            title: 'Names do not create accounts',
+            title: 'Private by default',
             message:
-                'Other tenancy members will only receive Home access after they are connected and accept an invitation.',
+                'People found in your agreement do not automatically get access. You choose who belongs to this Home and who can use Housely.',
           ),
 
           const SizedBox(height: HouselySpace.xl),
 
+          const SizedBox(height: HouselySpace.xl),
+
           HouselyButton(
-            label: 'Connect household members',
-            onPressed: () => context.replace('/invite-members'),
+            label: 'Continue setup',
+            onPressed: () => context.replace('/household-management'),
+          ),
+
+          const SizedBox(height: HouselySpace.sm),
+
+          HouselyButton(
+            label: 'Do this later',
+            style: HouselyButtonStyle.text,
+            onPressed: () => context.replace('/tenancy-complete'),
           ),
 
           const SizedBox(height: HouselySpace.sm),
@@ -2063,7 +2354,7 @@ class OffAppMemberAddedScreen extends StatelessWidget {
           const SizedBox(height: HouselySpace.xl),
 
           HouselyButton(
-            label: 'Back to tenancy members',
+            label: 'Back to household',
             onPressed: () => context.go('/household-management'),
           ),
         ],
@@ -2220,8 +2511,8 @@ class MemberInviteSentScreen extends StatelessWidget {
 
           const SizedBox(height: HouselySpace.sm),
           HouselyButton(
-            label: 'Back to tenancy members',
-            onPressed: () => context.go('/tenancy-members-review'),
+            label: 'Back to household',
+            onPressed: () => context.go('/household-management'),
           ),
         ],
       ),
@@ -2400,7 +2691,7 @@ class HomeInvitationDeclinedScreen extends StatelessWidget {
 
           HouselyButton(
             label: 'Back to household',
-            onPressed: () => context.go('/tenancy-members-review'),
+            onPressed: () => context.go('/household-management'),
           ),
         ],
       ),
@@ -2615,9 +2906,6 @@ class MemberAccessSavedScreen extends StatelessWidget {
     );
   }
 }
-
-
-
 
 class AddHouseholdMemberScreen extends StatefulWidget {
   const AddHouseholdMemberScreen({required this.draft, super.key});
@@ -2953,10 +3241,13 @@ class HouseholdManagementScreen extends StatelessWidget {
             children: tenancyMembers
                 .map(
                   (member) => ListTile(
-                    contentPadding: EdgeInsets.zero,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: HouselySpace.md,
+                      vertical: HouselySpace.xs,
+                    ),
                     title: Text(member.name),
                     subtitle: Text('${_role(member)}\n${_status(member)}'),
-                    isThreeLine: true,
+
                     trailing: member.isCurrentUser
                         ? null
                         : const Icon(Icons.chevron_right_rounded),
@@ -2993,11 +3284,27 @@ class HouseholdManagementScreen extends StatelessWidget {
               children: otherMembers
                   .map(
                     (member) => ListTile(
-                      contentPadding: EdgeInsets.zero,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: HouselySpace.md,
+                        vertical: HouselySpace.xs,
+                      ),
                       title: Text(member.name),
-                      subtitle: Text('${_role(member)}\n${_status(member)}'),
+                      subtitle: Text(_role(member)),
                       isThreeLine: true,
-                      trailing: const Icon(Icons.chevron_right_rounded),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _status(member),
+                            style: Theme.of(context).textTheme.labelMedium,
+                          ),
+
+                          if (!member.isCurrentUser) ...[
+                            const SizedBox(width: HouselySpace.xs),
+                            const Icon(Icons.chevron_right_rounded),
+                          ],
+                        ],
+                      ),
                       onTap: () {
                         draft.selectedTenantMemberId = member.id;
 

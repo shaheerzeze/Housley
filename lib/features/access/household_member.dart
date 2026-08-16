@@ -11,6 +11,8 @@ enum HouseholdAppRole { setupAdmin, standard, guest }
 
 enum HouseholdInvitationStatus { none, pending, accepted, declined, cancelled }
 
+enum TenancyMemberReviewStatus { needsReview, confirmed, excluded }
+
 class HouseholdMemberPermissions {
   const HouseholdMemberPermissions({
     this.canInviteMembers = false,
@@ -19,6 +21,7 @@ class HouseholdMemberPermissions {
     this.canViewTenancyDocuments = false,
     this.canManageHomeSettings = false,
     this.canManageMemberPermissions = false,
+    
   });
 
   final bool canInviteMembers;
@@ -61,6 +64,8 @@ class HouseholdMember {
     this.invitationStatus = HouseholdInvitationStatus.none,
     this.permissions = HouseholdMemberPermissions.standardNamedTenant,
     this.appRole = HouseholdAppRole.standard,
+    this.tenancyReviewStatus =
+    TenancyMemberReviewStatus.needsReview,
   });
 
   final String id;
@@ -81,6 +86,7 @@ class HouseholdMember {
   HouseholdInvitationStatus invitationStatus;
 
   HouseholdMemberPermissions permissions;
+  TenancyMemberReviewStatus tenancyReviewStatus;
 
   bool get isLinkedToHousely => houselyUserId != null;
 

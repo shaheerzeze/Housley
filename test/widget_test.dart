@@ -3,6 +3,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:housely/app/housely_app.dart';
 import 'package:housely/design_system/components/buttons.dart';
 
+Future<void> confirmDetectedTenancyMemberIfNeeded(
+  WidgetTester tester,
+) async {
+  final confirmMember = find.widgetWithText(
+    HouselyButton,
+    'Confirm as tenancy member',
+  );
+
+  if (confirmMember.evaluate().isEmpty) return;
+
+  await tester.ensureVisible(confirmMember);
+  await tester.tap(confirmMember);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('accessibility review exposes the Phase 13 checks', (
     tester,
@@ -486,7 +501,7 @@ void main() {
     await tester.tap(roleContinue);
     await tester.pumpAndSettle();
 
-    final laterButton = find.text('Do this later');
+    final laterButton = find.text('Do this later').last;
 
     await tester.ensureVisible(laterButton);
 
@@ -533,7 +548,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    final laterButton = find.text('Do this later');
+    final laterButton = find.text('Do this later').last;
 
     await tester.ensureVisible(laterButton);
 
@@ -593,6 +608,9 @@ void main() {
     await tester.tap(alex);
     await tester.pumpAndSettle();
 
+    // A detected document name must be reviewed before phone lookup.
+    await confirmDetectedTenancyMemberIfNeeded(tester);
+
     expect(find.text('Connect Alex Morgan'), findsOneWidget);
 
     expect(find.text('Phone number'), findsOneWidget);
@@ -641,6 +659,9 @@ void main() {
     await tester.ensureVisible(alex);
     await tester.tap(alex);
     await tester.pumpAndSettle();
+
+    // A detected document name must be reviewed before phone lookup.
+    await confirmDetectedTenancyMemberIfNeeded(tester);
 
     final phoneField = find.byType(TextField);
 
@@ -744,6 +765,9 @@ void main() {
     await tester.ensureVisible(alex);
     await tester.tap(alex);
     await tester.pumpAndSettle();
+
+    // A detected document name must be reviewed before phone lookup.
+    await confirmDetectedTenancyMemberIfNeeded(tester);
 
     expect(find.text('Connect Alex Morgan'), findsOneWidget);
 
@@ -850,6 +874,9 @@ void main() {
     await tester.ensureVisible(alex);
     await tester.tap(alex);
     await tester.pumpAndSettle();
+
+    // A detected document name must be reviewed before phone lookup.
+    await confirmDetectedTenancyMemberIfNeeded(tester);
 
     await tester.enterText(find.byType(TextField).last, '+447700900123');
 
@@ -962,6 +989,9 @@ void main() {
     await tester.tap(alex);
     await tester.pumpAndSettle();
 
+    // A detected document name must be reviewed before phone lookup.
+    await confirmDetectedTenancyMemberIfNeeded(tester);
+
     await tester.enterText(find.byType(TextField).last, '+447700900123');
 
     await tester.pumpAndSettle();
@@ -1072,6 +1102,9 @@ void main() {
     await tester.tap(alex);
     await tester.pumpAndSettle();
 
+    // A detected document name must be reviewed before phone lookup.
+    await confirmDetectedTenancyMemberIfNeeded(tester);
+
     await tester.enterText(find.byType(TextField).last, '+447700900123');
 
     await tester.pumpAndSettle();
@@ -1164,5 +1197,529 @@ void main() {
     expect(find.text('Access updated'), findsOneWidget);
 
     expect(find.text('Role: Home admin'), findsOneWidget);
+  });
+  testWidgets('can add a normal household member', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-processing'),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+
+    // Complete tenancy identity setup.
+    final reviewMatch = find.text('Review my match');
+
+    await tester.ensureVisible(reviewMatch);
+    await tester.tap(reviewMatch);
+    await tester.pumpAndSettle();
+
+    final currentUser = find.text('Muhammad Shaheer Shoukathali');
+
+    await tester.ensureVisible(currentUser);
+    await tester.tap(currentUser);
+    await tester.pumpAndSettle();
+
+    final firstContinue = find.text('Continue');
+
+    await tester.ensureVisible(firstContinue);
+    await tester.tap(firstContinue);
+    await tester.pumpAndSettle();
+
+    final confirm = find.text('Yes, this is me');
+
+    await tester.ensureVisible(confirm);
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+
+    final roleContinue = find.text('Continue');
+
+    await tester.ensureVisible(roleContinue);
+    await tester.tap(roleContinue);
+    await tester.pumpAndSettle();
+
+    // We are now on tenancy member review.
+    // Use Alex to create an off-app member first,
+    // which gives us the management-screen route.
+    final alex = find.text('Alex Morgan');
+
+    await tester.ensureVisible(alex);
+    await tester.tap(alex);
+    await tester.pumpAndSettle();
+
+    // A detected document name must be reviewed before phone lookup.
+    await confirmDetectedTenancyMemberIfNeeded(tester);
+
+    await tester.enterText(find.byType(TextField).last, '+447700888888');
+
+    await tester.pumpAndSettle();
+
+    final findAccount = find.widgetWithText(
+      HouselyButton,
+      'Find Housely account',
+    );
+
+    await tester.ensureVisible(findAccount);
+
+    tester.testTextInput.hide();
+
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(findAccount);
+    await tester.tap(findAccount);
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+
+    final addOffApp = find.widgetWithText(
+      HouselyButton,
+      'Add as off-app member',
+    );
+
+    await tester.ensureVisible(addOffApp);
+    await tester.tap(addOffApp);
+    await tester.pumpAndSettle();
+
+    final backToHousehold = find.widgetWithText(
+      HouselyButton,
+      'Back to household',
+    );
+
+    await tester.ensureVisible(backToHousehold);
+    await tester.tap(backToHousehold);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Manage your household'), findsOneWidget);
+
+    // Add new member.
+    final addMember = find.widgetWithText(
+      HouselyButton,
+      'Add household member',
+    );
+
+    await tester.ensureVisible(addMember);
+    await tester.tap(addMember);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add household member'), findsOneWidget);
+
+    final nameField = find.byType(TextField).first;
+
+    await tester.enterText(nameField, 'John Smith');
+
+    await tester.pumpAndSettle();
+
+    final addButton = find.widgetWithText(HouselyButton, 'Add member');
+
+    expect(addButton, findsOneWidget);
+
+    await tester.ensureVisible(addButton);
+
+    tester.testTextInput.hide();
+
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(addButton);
+    await tester.tap(addButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Household member added'), findsOneWidget);
+
+    expect(find.text('John Smith'), findsOneWidget);
+
+    expect(find.text('Added as a household member.'), findsOneWidget);
+  });
+
+  testWidgets('can add a guest temporary resident', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-processing'),
+    );
+
+    await tester.pump();
+
+    await tester.pump(const Duration(seconds: 3));
+
+    await tester.pumpAndSettle();
+
+    // 1. Open tenancy identity matching.
+    final reviewMatch = find.text('Review my match');
+
+    expect(reviewMatch, findsOneWidget);
+
+    await tester.ensureVisible(reviewMatch);
+
+    await tester.tap(reviewMatch);
+
+    await tester.pumpAndSettle();
+
+    // 2. Select current user.
+    final currentUser = find.text('Muhammad Shaheer Shoukathali');
+
+    expect(currentUser, findsOneWidget);
+
+    await tester.ensureVisible(currentUser);
+
+    await tester.tap(currentUser);
+
+    await tester.pumpAndSettle();
+
+    // 3. Continue to confirmation.
+    final firstContinue = find.text('Continue');
+
+    expect(firstContinue, findsOneWidget);
+
+    await tester.ensureVisible(firstContinue);
+
+    await tester.tap(firstContinue);
+
+    await tester.pumpAndSettle();
+
+    // 4. Confirm tenancy identity.
+    final confirm = find.text('Yes, this is me');
+
+    expect(confirm, findsOneWidget);
+
+    await tester.ensureVisible(confirm);
+
+    await tester.tap(confirm);
+
+    await tester.pumpAndSettle();
+
+    // 5. Continue through role/setup.
+    final roleContinue = find.text('Continue');
+
+    expect(roleContinue, findsOneWidget);
+
+    await tester.ensureVisible(roleContinue);
+
+    await tester.tap(roleContinue);
+
+    await tester.pumpAndSettle();
+
+    // 6. Open Alex connection flow.
+    final alex = find.text('Alex Morgan');
+
+    expect(alex, findsOneWidget);
+
+    await tester.ensureVisible(alex);
+
+    await tester.tap(alex);
+
+    await tester.pumpAndSettle();
+
+    // A detected document name must be reviewed before phone lookup.
+    await confirmDetectedTenancyMemberIfNeeded(tester);
+
+    expect(find.text('Connect Alex Morgan'), findsOneWidget);
+
+    // 7. Enter unknown phone.
+    final phoneFields = find.byType(TextField);
+
+    expect(phoneFields, findsWidgets);
+
+    await tester.enterText(phoneFields.last, '+447700888888');
+
+    await tester.pumpAndSettle();
+
+    // 8. Search Housely.
+    final findAccount = find.widgetWithText(
+      HouselyButton,
+      'Find Housely account',
+    );
+
+    expect(findAccount, findsOneWidget);
+
+    await tester.ensureVisible(findAccount);
+
+    tester.testTextInput.hide();
+
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(findAccount);
+
+    await tester.tap(findAccount);
+
+    await tester.pump();
+
+    await tester.pump(const Duration(milliseconds: 700));
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('No Housely account found'), findsOneWidget);
+
+    // 9. Add Alex as off-app member.
+    final addOffApp = find.widgetWithText(
+      HouselyButton,
+      'Add as off-app member',
+    );
+
+    expect(addOffApp, findsOneWidget);
+
+    await tester.ensureVisible(addOffApp);
+
+    await tester.tap(addOffApp);
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Off-app member added'), findsOneWidget);
+
+    // 10. Go to household management.
+    final backToHousehold = find.widgetWithText(
+      HouselyButton,
+      'Back to household',
+    );
+
+    expect(backToHousehold, findsOneWidget);
+
+    await tester.ensureVisible(backToHousehold);
+
+    await tester.tap(backToHousehold);
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Manage your household'), findsOneWidget);
+
+    // 11. Open add household member.
+    final addHouseholdMember = find.widgetWithText(
+      HouselyButton,
+      'Add household member',
+    );
+
+    expect(addHouseholdMember, findsOneWidget);
+
+    await tester.ensureVisible(addHouseholdMember);
+
+    await tester.tap(addHouseholdMember);
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add household member'), findsOneWidget);
+
+    // 12. Enter guest name.
+    final textFields = find.byType(TextField);
+
+    expect(textFields, findsWidgets);
+
+    await tester.enterText(textFields.first, 'Sarah Guest');
+
+    await tester.pumpAndSettle();
+
+    // Hide keyboard BEFORE selecting the role.
+    tester.testTextInput.hide();
+
+    await tester.pumpAndSettle();
+
+    // 13. Select guest / temporary resident.
+    final guestOption = find.text('Guest / temporary resident');
+
+    expect(guestOption, findsOneWidget);
+
+    await tester.ensureVisible(guestOption);
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(guestOption);
+
+    await tester.pumpAndSettle();
+
+    // Make sure the guest option is still there
+    // after selection.
+    expect(find.text('Guest / temporary resident'), findsOneWidget);
+
+    // 14. Add the member.
+    final addMemberButton = find.widgetWithText(HouselyButton, 'Add member');
+
+    expect(addMemberButton, findsOneWidget);
+
+    await tester.ensureVisible(addMemberButton);
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(addMemberButton);
+
+    await tester.pumpAndSettle();
+
+    // 15. Verify confirmation.
+    expect(find.text('Household member added'), findsOneWidget);
+
+    expect(find.text('Sarah Guest'), findsOneWidget);
+
+    expect(find.text('Added as a guest / temporary resident.'), findsOneWidget);
+  });
+  testWidgets('ordinary household member can be removed', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-processing'),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+
+    // Complete tenancy identity setup.
+    final reviewMatch = find.text('Review my match');
+
+    await tester.ensureVisible(reviewMatch);
+    await tester.tap(reviewMatch);
+    await tester.pumpAndSettle();
+
+    final currentUser = find.text('Muhammad Shaheer Shoukathali');
+
+    await tester.ensureVisible(currentUser);
+    await tester.tap(currentUser);
+    await tester.pumpAndSettle();
+
+    final firstContinue = find.text('Continue');
+
+    await tester.ensureVisible(firstContinue);
+    await tester.tap(firstContinue);
+    await tester.pumpAndSettle();
+
+    final confirm = find.text('Yes, this is me');
+
+    await tester.ensureVisible(confirm);
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+
+    final roleContinue = find.text('Continue');
+
+    await tester.ensureVisible(roleContinue);
+    await tester.tap(roleContinue);
+    await tester.pumpAndSettle();
+
+    // We are now on tenancy member review.
+    // Use Alex to create an off-app member first,
+    // which gives us the management-screen route.
+    final alex = find.text('Alex Morgan');
+
+    await tester.ensureVisible(alex);
+    await tester.tap(alex);
+    await tester.pumpAndSettle();
+
+    // A detected document name must be reviewed before phone lookup.
+    await confirmDetectedTenancyMemberIfNeeded(tester);
+
+    await tester.enterText(find.byType(TextField).last, '+447700888888');
+
+    await tester.pumpAndSettle();
+
+    final findAccount = find.widgetWithText(
+      HouselyButton,
+      'Find Housely account',
+    );
+
+    await tester.ensureVisible(findAccount);
+
+    tester.testTextInput.hide();
+
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(findAccount);
+    await tester.tap(findAccount);
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+
+    final addOffApp = find.widgetWithText(
+      HouselyButton,
+      'Add as off-app member',
+    );
+
+    await tester.ensureVisible(addOffApp);
+    await tester.tap(addOffApp);
+    await tester.pumpAndSettle();
+
+    final backToHousehold = find.widgetWithText(
+      HouselyButton,
+      'Back to household',
+    );
+
+    await tester.ensureVisible(backToHousehold);
+    await tester.tap(backToHousehold);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Manage your household'), findsOneWidget);
+
+    // Add new member.
+    final addMember = find.widgetWithText(
+      HouselyButton,
+      'Add household member',
+    );
+
+    await tester.ensureVisible(addMember);
+    await tester.tap(addMember);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add household member'), findsOneWidget);
+
+    final nameField = find.byType(TextField).first;
+
+    await tester.enterText(nameField, 'John Smith');
+
+    await tester.pumpAndSettle();
+
+    final addButton = find.widgetWithText(HouselyButton, 'Add member');
+
+    expect(addButton, findsOneWidget);
+
+    await tester.ensureVisible(addButton);
+
+    tester.testTextInput.hide();
+
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(addButton);
+    await tester.tap(addButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Household member added'), findsOneWidget);
+
+    expect(find.text('John Smith'), findsOneWidget);
+
+    expect(find.text('Added as a household member.'), findsOneWidget);
+    final backToHouseholdAfterAdd = find.widgetWithText(
+      HouselyButton,
+      'Back to household',
+    );
+
+    await tester.ensureVisible(backToHouseholdAfterAdd);
+
+    await tester.tap(backToHouseholdAfterAdd);
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Manage your household'), findsOneWidget);
+
+    final john = find.text('John Smith');
+
+    expect(john, findsOneWidget);
+
+    await tester.ensureVisible(john);
+    await tester.tap(john);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Manage John Smith'), findsOneWidget);
+
+    final remove = find.widgetWithText(HouselyButton, 'Remove from Home');
+
+    expect(remove, findsOneWidget);
+
+    await tester.ensureVisible(remove);
+    await tester.tap(remove);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Remove member?'), findsOneWidget);
+
+    final confirmRemove = find.widgetWithText(
+      HouselyButton,
+      'Remove from Home',
+    );
+
+    await tester.ensureVisible(confirmRemove);
+
+    await tester.tap(confirmRemove);
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Manage your household'), findsOneWidget);
+
+    expect(find.text('John Smith'), findsNothing);
   });
 }
