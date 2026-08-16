@@ -860,7 +860,20 @@ void main() {
       'Find Housely account',
     );
 
+    expect(findAccount, findsOneWidget);
+
     await tester.ensureVisible(findAccount);
+
+    await tester.pumpAndSettle();
+
+    // Close the keyboard so it cannot cover the CTA.
+    tester.testTextInput.hide();
+
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(findAccount);
+
+    await tester.pumpAndSettle();
 
     await tester.tap(findAccount);
 
@@ -958,7 +971,20 @@ void main() {
       'Find Housely account',
     );
 
+    expect(findAccount, findsOneWidget);
+
     await tester.ensureVisible(findAccount);
+
+    await tester.pumpAndSettle();
+
+    // Close the keyboard so it cannot cover the CTA.
+    tester.testTextInput.hide();
+
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(findAccount);
+
+    await tester.pumpAndSettle();
 
     await tester.tap(findAccount);
 
@@ -1055,7 +1081,20 @@ void main() {
       'Find Housely account',
     );
 
+    expect(findAccount, findsOneWidget);
+
     await tester.ensureVisible(findAccount);
+
+    await tester.pumpAndSettle();
+
+    // Close the keyboard so it cannot cover the CTA.
+    tester.testTextInput.hide();
+
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(findAccount);
+
+    await tester.pumpAndSettle();
 
     await tester.tap(findAccount);
 
