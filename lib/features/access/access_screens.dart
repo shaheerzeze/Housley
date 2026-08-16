@@ -3207,6 +3207,17 @@ class HouseholdManagementScreen extends StatelessWidget {
 
           const SizedBox(height: HouselySpace.xl),
 
+          if (draft.homeSetupAdmin) ...[
+            HouselyButton(
+              label: 'Invite to Home',
+              leadingIcon: Icons.qr_code_2_rounded,
+              style: HouselyButtonStyle.secondary,
+              onPressed: () => context.push('/invite-home'),
+            ),
+
+            const SizedBox(height: HouselySpace.sm),
+          ],
+
           HouselyButton(
             label: 'Add household member',
             onPressed: () => context.push('/add-household-member'),

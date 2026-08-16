@@ -7,6 +7,8 @@ import '../developer/scenario_gate.dart';
 import '../developer/state_lab_screen.dart';
 import '../features/access/access_draft.dart';
 import '../features/access/access_screens.dart';
+import '../features/access/join_home_screens.dart';
+import '../features/access/join_home_state.dart';
 import '../features/home/home_screens.dart';
 import '../features/home/home_state.dart';
 import '../features/shell/app_shell.dart';
@@ -26,6 +28,7 @@ final _youNavigatorKey = GlobalKey<NavigatorState>();
 
 GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
   final draft = AccessDraft();
+  final joinHomeState = JoinHomeState();
   final homeState = HomeFeatureState();
   final splitState = SplitFeatureState();
   final vaultState = VaultFeatureState();
@@ -67,8 +70,36 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
       ),
       GoRoute(
         path: '/join-home',
-        builder: (context, state) => const JoinHomePlaceholderScreen(),
+        builder: (context, state) => JoinHomeScreen(
+          draft: draft,
+          state: joinHomeState,
+          initialCode: state.uri.queryParameters['code'],
+        ),
       ),
+
+      GoRoute(
+        path: '/invite-home',
+        builder: (context, state) =>
+            InviteToHomeScreen(draft: draft, state: joinHomeState),
+      ),
+
+      GoRoute(
+        path: '/scan-home-qr',
+        builder: (context, state) => ScanHomeQrScreen(state: joinHomeState),
+      ),
+
+      GoRoute(
+        path: '/join-home-preview',
+        builder: (context, state) =>
+            JoinHomePreviewScreen(draft: draft, state: joinHomeState),
+      ),
+
+      GoRoute(
+        path: '/join-home-success',
+        builder: (context, state) =>
+            JoinHomeSuccessScreen(state: joinHomeState),
+      ),
+
       GoRoute(
         path: '/create-home',
         builder: (context, state) => CreateHomeScreen(draft: draft),

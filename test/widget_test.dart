@@ -253,28 +253,22 @@ void main() {
 
     expect(find.text('Are you named on the tenancy?'), findsOneWidget);
   });
-  testWidgets('Join a Home opens the safe placeholder', (tester) async {
+  testWidgets('Join a Home opens code and QR options', (tester) async {
     await tester.pumpWidget(const HouselyApp(initialLocation: '/start-choice'));
 
     await tester.pumpAndSettle();
 
     final joinHome = find.text('Join a Home');
-
     expect(joinHome, findsOneWidget);
 
     await tester.tap(joinHome);
     await tester.pumpAndSettle();
 
     expect(find.text('Join your household'), findsOneWidget);
-
-    expect(
-      find.text(
-        'You won’t see Household information until your membership has been accepted.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('Home code'), findsOneWidget);
+    expect(find.text('Find Home'), findsOneWidget);
+    expect(find.text('Scan QR code'), findsOneWidget);
   });
-
   testWidgets('tenancy upload exposes document choice', (tester) async {
     await tester.pumpWidget(
       const HouselyApp(initialLocation: '/upload-tenancy'),
@@ -1823,4 +1817,65 @@ void main() {
       expect(find.text('Review people in your tenancy'), findsOneWidget);
     },
   );
+  testWidgets('valid Home code reaches Home preview', (tester) async {
+    await tester.pumpWidget(const HouselyApp(initialLocation: '/join-home'));
+
+    await tester.pumpAndSettle();
+
+    final codeField = find.widgetWithText(TextField, 'Home code');
+    expect(codeField, findsOneWidget);
+
+    await tester.enterText(codeField, 'HSLY-7K4P9Q');
+    await tester.pumpAndSettle();
+
+    final findHome = find.widgetWithText(HouselyButton, 'Find Home');
+    expect(findHome, findsOneWidget);
+
+    tester.testTextInput.hide();
+    await tester.pumpAndSettle();
+
+    await tester.tap(findHome);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+
+    expect(find.text('George Street Flat'), findsWidgets);
+    expect(find.text('Join this Home'), findsOneWidget);
+  });
+
+  testWidgets('invalid Home code shows a safe error', (tester) async {
+    await tester.pumpWidget(const HouselyApp(initialLocation: '/join-home'));
+
+    await tester.pumpAndSettle();
+
+    final codeField = find.widgetWithText(TextField, 'Home code');
+    await tester.enterText(codeField, 'WRONG-CODE');
+    await tester.pumpAndSettle();
+
+    final findHome = find.widgetWithText(HouselyButton, 'Find Home');
+
+    tester.testTextInput.hide();
+    await tester.pumpAndSettle();
+
+    await tester.tap(findHome);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Home not found'), findsOneWidget);
+    expect(find.text('George Street Flat'), findsNothing);
+  });
+
+  testWidgets('invitation link auto-loads its Home code', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/join-home?code=HSLY-7K4P9Q'),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+
+    expect(find.text('George Street Flat'), findsWidgets);
+    expect(find.text('Join this Home'), findsOneWidget);
+  });
 }
