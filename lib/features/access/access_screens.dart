@@ -745,15 +745,10 @@ class _CreateHomeScreenState extends State<CreateHomeScreen> {
     if (!_canContinue) return;
 
     final newAddressLine1 = _addressLine1.text.trim();
-
     final newAddressLine2 = _addressLine2.text.trim();
-
     final newCity = _city.text.trim();
-
     final newPostcode = _postcode.text.trim().toUpperCase();
 
-    // Only changing the actual property should
-    // invalidate the tenancy.
     final propertyChanged =
         widget.draft.addressLine1 != newAddressLine1 ||
         widget.draft.addressLine2 != newAddressLine2 ||
@@ -951,22 +946,7 @@ class TenancyStatusScreen extends StatelessWidget {
   final AccessDraft draft;
 
   void _select(BuildContext context, TenancyRelationship relationship) {
-    {
-      // If the user changes their tenancy answer,
-      // remove any state that depended on the old answer.
-      if (draft.tenancyRelationship != relationship) {
-        draft
-          ..tenancyDocumentName = null
-          ..tenancyDocumentType = null
-          ..tenancyDocumentSizeBytes = null
-          ..tenancySkipped = false
-          ..tenancySetupComplete = false;
-
-        draft.resetProcessedTenancy();
-      }
-    }
-
-    draft.tenancyRelationship = relationship;
+    draft.updateTenancyRelationship(relationship);
 
     switch (relationship) {
       case TenancyRelationship.namedOnTenancy:
@@ -1043,23 +1023,16 @@ class _UploadTenancyScreenState extends State<UploadTenancyScreen> {
 
   Future<void> _chooseMockDocument() async {
     setState(() {
-      // A new document means the old detected people,
-      // identity match and member states are no longer valid.
-      widget.draft.resetProcessedTenancy();
-
-      widget.draft
-        ..tenancyDocumentName = 'tenancy-agreement.pdf'
-        ..tenancyDocumentType = 'PDF'
-        ..tenancyDocumentSizeBytes = 1840000
-        ..tenancySkipped = false;
-
-      _uploading = false;
+      _uploading = true;
     });
+
     await Future<void>.delayed(const Duration(milliseconds: 650));
 
     if (!mounted) return;
 
     setState(() {
+      widget.draft.resetProcessedTenancy();
+
       widget.draft
         ..tenancyDocumentName = 'tenancy-agreement.pdf'
         ..tenancyDocumentType = 'PDF'
@@ -1261,16 +1234,13 @@ class _TenancyProcessingScreenState extends State<TenancyProcessingScreen> {
 
     if (!mounted) return;
 
-    widget.draft
-      ..matchedTenantName = null
-      ..tenancyIdentityConfirmed = false
-      ..namedTenantVerified = false
-      ..homeSetupAdmin = false
-      ..tenancySetupComplete = false;
+    widget.draft.tenancySetupComplete = false;
 
-    widget.draft.detectedTenantNames
-      ..clear()
-      ..addAll(['Muhammad Shaheer Shoukathali', 'Alex Morgan', 'Meera Thomas']);
+    widget.draft.setDetectedTenantNames([
+      'Muhammad Shaheer Shoukathali',
+      'Alex Morgan',
+      'Meera Thomas',
+    ]);
 
     context.replace('/tenancy-detected');
   }
@@ -1443,7 +1413,7 @@ class _TenantMatchScreenState extends State<TenantMatchScreen> {
   void _continue() {
     if (_selectedName == null) return;
 
-    widget.draft.matchedTenantName = _selectedName;
+    widget.draft.setMatchedTenantName(_selectedName);
 
     context.replace('/tenant-match-confirm');
   }
@@ -1501,7 +1471,7 @@ class _TenantMatchScreenState extends State<TenantMatchScreen> {
           label: 'None of these are me',
           style: HouselyButtonStyle.text,
           onPressed: () {
-            widget.draft.matchedTenantName = null;
+            widget.draft.setMatchedTenantName(null);
 
             context.replace('/tenant-match-missing');
           },
@@ -1522,9 +1492,7 @@ class TenantMatchConfirmScreen extends StatelessWidget {
       return;
     }
 
-    draft
-      ..tenancyIdentityConfirmed = true
-      ..namedTenantVerified = true;
+    draft.confirmTenancyIdentity();
 
     context.replace('/tenancy-role');
   }
@@ -1630,11 +1598,7 @@ class TenantMatchMissingScreen extends StatelessWidget {
           label: 'Continue without verification',
           style: HouselyButtonStyle.secondary,
           onPressed: () {
-            draft
-              ..matchedTenantName = null
-              ..tenancyIdentityConfirmed = false
-              ..namedTenantVerified = false
-              ..homeSetupAdmin = false;
+            draft.continueWithoutTenancyVerification();
 
             context.replace('/tenancy-members-review');
           },
@@ -1650,7 +1614,7 @@ class TenancyRoleScreen extends StatelessWidget {
   final AccessDraft draft;
 
   void _continue(BuildContext context) {
-    draft.homeSetupAdmin = true;
+    draft.setHomeSetupAdmin(true);
 
     context.replace('/tenancy-members-review');
   }
@@ -1795,6 +1759,7 @@ class TenancyMembersReviewScreen extends StatelessWidget {
   const TenancyMembersReviewScreen({required this.draft, super.key});
 
   final AccessDraft draft;
+
   void _showDetectedNameActions(BuildContext context, HouseholdMember member) {
     showModalBottomSheet<void>(
       context: context,
@@ -1810,40 +1775,27 @@ class TenancyMembersReviewScreen extends StatelessWidget {
                   member.name,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-
                 const SizedBox(height: HouselySpace.xs),
-
                 Text(
                   'Housely found this name in the tenancy agreement.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
-
                 const SizedBox(height: HouselySpace.lg),
-
                 HouselyButton(
                   label: 'Confirm as tenancy member',
                   onPressed: () {
-                    member.tenancyReviewStatus =
-                        TenancyMemberReviewStatus.confirmed;
-
+                    draft.confirmTenancyMember(member.id);
                     Navigator.of(sheetContext).pop();
-
                     context.push('/connect-tenant-member');
                   },
                 ),
-
                 const SizedBox(height: HouselySpace.sm),
-
                 HouselyButton(
                   label: 'Not part of this household',
                   style: HouselyButtonStyle.secondary,
                   onPressed: () {
-                    member.tenancyReviewStatus =
-                        TenancyMemberReviewStatus.excluded;
-
+                    draft.excludeTenancyMember(member.id);
                     Navigator.of(sheetContext).pop();
-
-                    context.replace('/tenancy-members-review');
                   },
                 ),
               ],
@@ -1869,38 +1821,21 @@ class TenancyMembersReviewScreen extends StatelessWidget {
                   member.name,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-
                 const SizedBox(height: HouselySpace.lg),
-
                 HouselyButton(
                   label: 'Resend invitation',
                   onPressed: () {
-                    member.invitationStatus = HouseholdInvitationStatus.pending;
-
-                    member.connectionStatus =
-                        HouseholdConnectionStatus.invitePending;
-
+                    draft.resendInvitation(member.id);
                     Navigator.of(sheetContext).pop();
                   },
                 ),
-
                 const SizedBox(height: HouselySpace.sm),
-
                 HouselyButton(
                   label: 'Cancel invitation',
                   style: HouselyButtonStyle.destructive,
                   onPressed: () {
-                    member.invitationStatus =
-                        HouseholdInvitationStatus.cancelled;
-
-                    member.connectionStatus =
-                        HouseholdConnectionStatus.notConnected;
-
-                    member.houselyUserId = null;
-
+                    draft.cancelInvitation(member.id);
                     Navigator.of(sheetContext).pop();
-
-                    context.replace('/tenancy-members-review');
                   },
                 ),
               ],
@@ -1911,154 +1846,145 @@ class TenancyMembersReviewScreen extends StatelessWidget {
     );
   }
 
+  String _status(HouseholdMember member) {
+    if (member.isCurrentUser) return 'Verified';
+
+    if (member.invitationStatus == HouseholdInvitationStatus.pending) {
+      return 'Invitation sent';
+    }
+
+    if (member.invitationStatus == HouseholdInvitationStatus.declined) {
+      return 'Invitation declined';
+    }
+
+    if (member.invitationStatus == HouseholdInvitationStatus.cancelled) {
+      return 'Not connected';
+    }
+
+    if (member.connectionStatus == HouseholdConnectionStatus.connected) {
+      return 'Connected';
+    }
+
+    if (member.connectionStatus == HouseholdConnectionStatus.offApp) {
+      return "Doesn't use Housely";
+    }
+
+    if (member.tenancyReviewStatus == TenancyMemberReviewStatus.needsReview) {
+      return 'Needs review';
+    }
+
+    return 'Not connected';
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Reconcile every time the screen is built. This is deliberately not a
+    // one-time initializer: if the user goes back and changes which tenancy
+    // name is theirs, the current-user marker must move immediately.
     draft.initialiseHouseholdMembersFromTenancy();
-    final visibleMembers = draft.householdMembers
-        .where(
-          (member) =>
-              member.tenancyReviewStatus != TenancyMemberReviewStatus.excluded,
-        )
-        .toList();
-    return AccessScaffold(
-      eyebrow: 'Household',
-      title: 'Review people in your tenancy',
-      message:
-          'We found these names in your agreement. Confirm who belongs to this Home and connect the people who will use Housely.',
-      onBack: () {
-        if (draft.namedTenantVerified) {
-          context.go('/tenancy-role');
-        } else {
-          context.go('/tenant-match-missing');
-        }
+
+    return AnimatedBuilder(
+      animation: draft,
+      builder: (context, _) {
+        draft.initialiseHouseholdMembersFromTenancy();
+
+        final visibleMembers = draft.householdMembers
+            .where(
+              (member) =>
+                  member.type == HouseholdMemberType.namedTenant &&
+                  member.tenancyReviewStatus !=
+                      TenancyMemberReviewStatus.excluded,
+            )
+            .toList();
+
+        return AccessScaffold(
+          eyebrow: 'Household',
+          title: 'Review people in your tenancy',
+          message:
+              'We found these names in your agreement. Confirm who belongs to this Home and connect the people who will use Housely.',
+          onBack: () {
+            if (draft.namedTenantVerified) {
+              context.go('/tenancy-role');
+            } else {
+              context.go('/tenant-match-missing');
+            }
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              HouselyGroupedList(
+                children: visibleMembers.map((member) {
+                  return _TenancyReviewMemberRow(
+                    member: member,
+                    status: _status(member),
+                    onTap: member.isCurrentUser
+                        ? null
+                        : () {
+                            draft.selectTenantMember(member.id);
+
+                            if (member.tenancyReviewStatus ==
+                                TenancyMemberReviewStatus.needsReview) {
+                              _showDetectedNameActions(context, member);
+                              return;
+                            }
+
+                            if (member.invitationStatus ==
+                                HouseholdInvitationStatus.pending) {
+                              _showInvitationActions(context, member);
+                              return;
+                            }
+
+                            if (member.connectionStatus ==
+                                    HouseholdConnectionStatus.connected ||
+                                member.connectionStatus ==
+                                    HouseholdConnectionStatus.offApp) {
+                              context.push('/member-access');
+                              return;
+                            }
+
+                            draft.clearLookupResult();
+                            draft.selectTenantMember(member.id);
+                            context.push('/connect-tenant-member');
+                          },
+                    onMore: member.isCurrentUser
+                        ? null
+                        : member.invitationStatus ==
+                              HouseholdInvitationStatus.pending
+                        ? () {
+                            draft.selectTenantMember(member.id);
+                            _showInvitationActions(context, member);
+                          }
+                        : member.tenancyReviewStatus ==
+                              TenancyMemberReviewStatus.needsReview
+                        ? () {
+                            draft.selectTenantMember(member.id);
+                            _showDetectedNameActions(context, member);
+                          }
+                        : null,
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: HouselySpace.lg),
+              const HouselyPrivacyNotice(
+                title: 'Private by default',
+                message:
+                    'People found in your agreement do not automatically get access. You choose who belongs to this Home and who can use Housely.',
+              ),
+              const SizedBox(height: HouselySpace.xl),
+              HouselyButton(
+                label: 'Continue setup',
+                onPressed: () => context.replace('/household-management'),
+              ),
+              const SizedBox(height: HouselySpace.sm),
+              HouselyButton(
+                label: 'Do this later',
+                style: HouselyButtonStyle.text,
+                onPressed: () => context.replace('/tenancy-complete'),
+              ),
+            ],
+          ),
+        );
       },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          HouselyGroupedList(
-            children: visibleMembers.map((member) {
-              String status;
-
-              if (member.isCurrentUser) {
-                status = 'Verified';
-              } else if (member.invitationStatus ==
-                  HouseholdInvitationStatus.pending) {
-                status = 'Invitation sent';
-              } else if (member.invitationStatus ==
-                  HouseholdInvitationStatus.declined) {
-                status = 'Invitation declined';
-              } else if (member.invitationStatus ==
-                  HouseholdInvitationStatus.cancelled) {
-                status = 'Not connected';
-              } else if (member.connectionStatus ==
-                  HouseholdConnectionStatus.connected) {
-                status = 'Connected';
-              } else if (member.connectionStatus ==
-                  HouseholdConnectionStatus.offApp) {
-                status = "Doesn't use Housely";
-              } else if (member.tenancyReviewStatus ==
-                  TenancyMemberReviewStatus.needsReview) {
-                status = 'Needs review';
-              } else {
-                status = 'Not connected';
-              }
-
-              return _TenancyReviewMemberRow(
-                member: member,
-                status: status,
-
-                onTap: member.isCurrentUser
-                    ? null
-                    : () {
-                        draft.selectedTenantMemberId = member.id;
-
-                        // Name was detected from document,
-                        // but user has not confirmed it yet.
-                        if (member.tenancyReviewStatus ==
-                            TenancyMemberReviewStatus.needsReview) {
-                          _showDetectedNameActions(context, member);
-                          return;
-                        }
-
-                        // Invitation already sent.
-                        if (member.invitationStatus ==
-                            HouseholdInvitationStatus.pending) {
-                          _showInvitationActions(context, member);
-                          return;
-                        }
-
-                        // Already connected / stored.
-                        if (member.connectionStatus ==
-                                HouseholdConnectionStatus.connected ||
-                            member.connectionStatus ==
-                                HouseholdConnectionStatus.offApp) {
-                          context.push('/member-access');
-                          return;
-                        }
-
-                        // Confirmed tenancy member,
-                        // but not connected yet.
-                        draft.memberLookupPhone = '';
-                        draft.foundHouselyUserId = null;
-                        draft.foundHouselyUserName = null;
-                        draft.foundHouselyUserPhone = null;
-
-                        context.push('/connect-tenant-member');
-                      },
-
-                onMore: member.isCurrentUser
-                    ? null
-                    : member.invitationStatus ==
-                          HouseholdInvitationStatus.pending
-                    ? () {
-                        _showInvitationActions(context, member);
-                      }
-                    : member.tenancyReviewStatus ==
-                          TenancyMemberReviewStatus.needsReview
-                    ? () {
-                        draft.selectedTenantMemberId = member.id;
-
-                        _showDetectedNameActions(context, member);
-                      }
-                    : null,
-              );
-            }).toList(),
-          ),
-
-          const SizedBox(height: HouselySpace.lg),
-
-          const HouselyPrivacyNotice(
-            title: 'Private by default',
-            message:
-                'People found in your agreement do not automatically get access. You choose who belongs to this Home and who can use Housely.',
-          ),
-
-          const SizedBox(height: HouselySpace.xl),
-
-          const SizedBox(height: HouselySpace.xl),
-
-          HouselyButton(
-            label: 'Continue setup',
-            onPressed: () => context.replace('/household-management'),
-          ),
-
-          const SizedBox(height: HouselySpace.sm),
-
-          HouselyButton(
-            label: 'Do this later',
-            style: HouselyButtonStyle.text,
-            onPressed: () => context.replace('/tenancy-complete'),
-          ),
-
-          const SizedBox(height: HouselySpace.sm),
-
-          HouselyButton(
-            label: 'Do this later',
-            style: HouselyButtonStyle.text,
-            onPressed: () => context.replace('/tenancy-complete'),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -2099,7 +2025,7 @@ class _ConnectTenantMemberScreenState extends State<ConnectTenantMemberScreen> {
         .replaceAll(' ', '')
         .replaceAll('-', '');
 
-    widget.draft.memberLookupPhone = normalisedPhone;
+    widget.draft.setLookupResult(phone: normalisedPhone);
 
     setState(() {
       _searching = true;
@@ -2116,20 +2042,18 @@ class _ConnectTenantMemberScreenState extends State<ConnectTenantMemberScreen> {
     });
 
     if (normalisedPhone == '+447700900123') {
-      widget.draft
-        ..foundHouselyUserId = 'mock-user-alex'
-        ..foundHouselyUserName = 'Alex Morgan'
-        ..foundHouselyUserPhone = normalisedPhone;
+      widget.draft.setLookupResult(
+        phone: normalisedPhone,
+        userId: 'mock-user-alex',
+        userName: 'Alex Morgan',
+      );
 
       context.replace('/member-account-found');
 
       return;
     }
 
-    widget.draft
-      ..foundHouselyUserId = null
-      ..foundHouselyUserName = null
-      ..foundHouselyUserPhone = normalisedPhone;
+    widget.draft.setLookupResult(phone: normalisedPhone);
 
     context.replace('/member-account-not-found');
   }
@@ -2225,16 +2149,9 @@ class MemberAccountNotFoundScreen extends StatelessWidget {
   final AccessDraft draft;
 
   void _addOffAppMember(BuildContext context) {
-    final member = draft.selectedTenantMember;
+    if (draft.selectedTenantMember == null) return;
 
-    if (member == null) return;
-
-    member
-      ..phone = draft.foundHouselyUserPhone ?? draft.memberLookupPhone
-      ..houselyUserId = null
-      ..connectionStatus = HouseholdConnectionStatus.offApp
-      ..invitationStatus = HouseholdInvitationStatus.none;
-
+    draft.markSelectedMemberOffApp();
     context.replace('/off-app-member-added');
   }
 
@@ -2369,18 +2286,12 @@ class MemberAccountFoundScreen extends StatelessWidget {
   final AccessDraft draft;
 
   void _sendInvite(BuildContext context) {
-    final member = draft.selectedTenantMember;
-
-    if (member == null || draft.foundHouselyUserId == null) {
+    if (draft.selectedTenantMember == null ||
+        draft.foundHouselyUserId == null) {
       return;
     }
 
-    member
-      ..phone = draft.foundHouselyUserPhone
-      ..houselyUserId = draft.foundHouselyUserId
-      ..connectionStatus = HouseholdConnectionStatus.invitePending
-      ..invitationStatus = HouseholdInvitationStatus.pending;
-
+    draft.sendInvitationToSelectedMember();
     context.replace('/member-invite-sent');
   }
 
@@ -2526,26 +2437,16 @@ class HomeInvitationScreen extends StatelessWidget {
   final AccessDraft draft;
 
   void _accept(BuildContext context) {
-    final member = draft.incomingInvitationMember;
+    if (draft.incomingInvitationMember == null) return;
 
-    if (member == null) return;
-
-    member
-      ..connectionStatus = HouseholdConnectionStatus.connected
-      ..invitationStatus = HouseholdInvitationStatus.accepted;
-
+    draft.acceptIncomingInvitation();
     context.replace('/home-invitation-accepted');
   }
 
   void _decline(BuildContext context) {
-    final member = draft.incomingInvitationMember;
+    if (draft.incomingInvitationMember == null) return;
 
-    if (member == null) return;
-
-    member
-      ..connectionStatus = HouseholdConnectionStatus.notConnected
-      ..invitationStatus = HouseholdInvitationStatus.declined;
-
+    draft.declineIncomingInvitation();
     context.replace('/home-invitation-declined');
   }
 
@@ -2720,16 +2621,11 @@ class _MemberAccessScreenState extends State<MemberAccessScreen> {
 
   void _save() {
     final member = widget.draft.selectedTenantMember;
-
     final role = _selectedRole;
 
-    if (member == null || role == null) {
-      return;
-    }
+    if (member == null || role == null) return;
 
-    member
-      ..appRole = role
-      ..permissions = permissionsForMember(type: member.type, role: role);
+    widget.draft.updateMemberAccess(memberId: member.id, role: role);
 
     context.replace('/member-access-saved');
   }
@@ -2958,9 +2854,7 @@ class _AddHouseholdMemberScreenState extends State<AddHouseholdMemberScreen> {
       ),
     );
 
-    widget.draft.householdMembers.add(member);
-
-    widget.draft.selectedTenantMemberId = member.id;
+    widget.draft.addHouseholdMember(member);
 
     context.replace('/household-member-added');
   }
@@ -3082,14 +2976,9 @@ class RemoveHouseholdMemberScreen extends StatelessWidget {
   void _remove(BuildContext context) {
     final member = draft.selectedTenantMember;
 
-    if (member == null || member.isVerifiedNamedTenant) {
-      return;
-    }
+    if (member == null || member.isVerifiedNamedTenant) return;
 
-    draft.householdMembers.removeWhere((item) => item.id == member.id);
-
-    draft.selectedTenantMemberId = null;
-
+    draft.removeHouseholdMember(member.id);
     context.replace('/household-management');
   }
 
@@ -3342,7 +3231,7 @@ class TenancySetupCompleteScreen extends StatelessWidget {
   final AccessDraft draft;
 
   void _finish(BuildContext context) {
-    draft.tenancySetupComplete = true;
+    draft.markTenancySetupComplete();
 
     context.go('/home');
   }

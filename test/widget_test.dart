@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:housely/app/housely_app.dart';
 import 'package:housely/design_system/components/buttons.dart';
+import 'package:housely/features/access/access_draft.dart';
+import 'package:housely/features/access/household_member.dart';
 
-Future<void> confirmDetectedTenancyMemberIfNeeded(
-  WidgetTester tester,
-) async {
+Future<void> confirmDetectedTenancyMemberIfNeeded(WidgetTester tester) async {
   final confirmMember = find.widgetWithText(
     HouselyButton,
     'Confirm as tenancy member',
@@ -1722,4 +1722,105 @@ void main() {
 
     expect(find.text('John Smith'), findsNothing);
   });
+  test(
+    'changing tenancy identity reconciles the current member immediately',
+    () {
+      final draft = AccessDraft()
+        ..phone = '+447700900000'
+        ..detectedTenantNames.addAll([
+          'Muhammad Shaheer Shoukathali',
+          'Alex Morgan',
+          'Meera Thomas',
+        ]);
+
+      draft.setMatchedTenantName('Muhammad Shaheer Shoukathali');
+      draft.confirmTenancyIdentity();
+      draft.setHomeSetupAdmin(true);
+
+      expect(
+        draft.householdMembers
+            .singleWhere(
+              (member) => member.name == 'Muhammad Shaheer Shoukathali',
+            )
+            .isCurrentUser,
+        isTrue,
+      );
+
+      draft.setMatchedTenantName('Alex Morgan');
+      draft.confirmTenancyIdentity();
+      draft.setHomeSetupAdmin(true);
+
+      final shaheer = draft.householdMembers.singleWhere(
+        (member) => member.name == 'Muhammad Shaheer Shoukathali',
+      );
+      final alex = draft.householdMembers.singleWhere(
+        (member) => member.name == 'Alex Morgan',
+      );
+
+      expect(shaheer.isCurrentUser, isFalse);
+      expect(shaheer.houselyUserId, isNull);
+      expect(
+        shaheer.tenancyReviewStatus,
+        TenancyMemberReviewStatus.needsReview,
+      );
+
+      expect(alex.isCurrentUser, isTrue);
+      expect(alex.isVerifiedNamedTenant, isTrue);
+      expect(alex.houselyUserId, 'current-user');
+      expect(alex.appRole, HouseholdAppRole.setupAdmin);
+    },
+  );
+
+  testWidgets(
+    'excluding a detected tenancy person updates the review immediately',
+    (tester) async {
+      await tester.pumpWidget(
+        const HouselyApp(initialLocation: '/tenancy-processing'),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+
+      final reviewMatch = find.text('Review my match');
+      await tester.ensureVisible(reviewMatch);
+      await tester.tap(reviewMatch);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Muhammad Shaheer Shoukathali'));
+      await tester.pumpAndSettle();
+
+      final continueButton = find.text('Continue').last;
+      await tester.ensureVisible(continueButton);
+      await tester.tap(continueButton);
+      await tester.pumpAndSettle();
+
+      final confirmButton = find.text('Yes, this is me');
+      await tester.ensureVisible(confirmButton);
+      await tester.tap(confirmButton);
+      await tester.pumpAndSettle();
+
+      final roleContinue = find.text('Continue').last;
+      await tester.ensureVisible(roleContinue);
+      await tester.tap(roleContinue);
+      await tester.pumpAndSettle();
+
+      final meera = find.text('Meera Thomas');
+      expect(meera, findsOneWidget);
+      await tester.ensureVisible(meera);
+      await tester.tap(meera);
+      await tester.pumpAndSettle();
+
+      final exclude = find.widgetWithText(
+        HouselyButton,
+        'Not part of this household',
+      );
+      expect(exclude, findsOneWidget);
+      await tester.tap(exclude);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Meera Thomas'), findsNothing);
+      expect(find.text('Review people in your tenancy'), findsOneWidget);
+    },
+  );
 }
