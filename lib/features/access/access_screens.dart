@@ -356,7 +356,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     text: widget.draft.name,
   );
   late final TextEditingController _phone = TextEditingController(
-    text: widget.draft.phone,
+    text: widget.draft.phone
+        .replaceFirst('+44', '')
+        .replaceAll(RegExp(r'\D'), ''),
   );
   late final TextEditingController _email = TextEditingController(
     text: widget.draft.email,
@@ -368,9 +370,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   bool _showErrors = false;
 
   bool get _phoneValid {
-    final value = _phone.text.trim().replaceAll(' ', '').replaceAll('-', '');
+    final digits = _phone.text.replaceAll(RegExp(r'\D'), '');
 
-    return value.startsWith('+') && value.length >= 9;
+    return digits.length == 10;
   }
 
   bool get _emailValid {
@@ -395,7 +397,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
     widget.draft
       ..name = _name.text.trim()
-      ..phone = _phone.text.trim().replaceAll(' ', '').replaceAll('-', '')
+      ..phone = '+44${_phone.text.replaceAll(RegExp(r'\D'), '')}'
       ..email = _email.text.trim()
       ..password = _password.text;
 
@@ -444,17 +446,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
         const SizedBox(height: HouselySpace.md),
 
-        HouselyField(
-          label: 'Phone number',
-          hint: '+44 7700 900123',
-          type: HouselyFieldType.phone,
+        HouselyPhoneField(
           controller: _phone,
-          state: _showErrors && !_phoneValid
-              ? HouselyComponentState.error
-              : HouselyComponentState.idle,
-          errorText: 'Enter your phone number with country code.',
-          helperText:
-              'Required for account verification and household invites.',
+          errorText: _showErrors && !_phoneValid
+              ? 'Enter a valid UK phone number.'
+              : null,
           onChanged: (_) => setState(() {}),
         ),
 
@@ -712,6 +708,12 @@ class _CreateHomeScreenState extends State<CreateHomeScreen> {
       _city.text.trim().isNotEmpty &&
       _postcode.text.trim().isNotEmpty;
 
+  bool get _postcodeLooksValid {
+    final value = _postcode.text.trim().toUpperCase();
+
+    return RegExp(r'^[A-Z0-9]{2,4} [0-9][A-Z]{2}$').hasMatch(value);
+  }
+
   bool get _canContinue =>
       _name.text.trim().isNotEmpty && (_hasLookupAddress || _hasManualAddress);
 
@@ -809,28 +811,25 @@ class _CreateHomeScreenState extends State<CreateHomeScreen> {
         const SizedBox(height: HouselySpace.md),
 
         HouselyField(
-  label: 'Postcode',
-  hint: 'EH14 2PT',
-  controller: _postcode,
-  textCapitalization:
-      TextCapitalization.characters,
-  inputFormatters: const [
-    HouselyUkPostcodeFormatter(),
-  ],
-  onChanged: (_) {
-    setState(() {
-      _selectedMockAddress = null;
-      _addressSearchPerformed = false;
-    });
-  },
-),
+          label: 'Postcode',
+          hint: 'EH14 2PT',
+          controller: _postcode,
+          textCapitalization: TextCapitalization.characters,
+          inputFormatters: const [HouselyUkPostcodeFormatter()],
+          onChanged: (_) {
+            setState(() {
+              _selectedMockAddress = null;
+              _addressSearchPerformed = false;
+            });
+          },
+        ),
 
         const SizedBox(height: HouselySpace.sm),
 
         HouselyButton(
           label: 'Find address',
           style: HouselyButtonStyle.secondary,
-          onPressed: _postcode.text.trim().isEmpty
+          onPressed: !_postcodeLooksValid
               ? null
               : () {
                   setState(() {
