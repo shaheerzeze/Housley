@@ -2064,7 +2064,7 @@ class OffAppMemberAddedScreen extends StatelessWidget {
 
           HouselyButton(
             label: 'Back to tenancy members',
-            onPressed: () => context.go('/tenancy-members-review'),
+            onPressed: () => context.go('/household-management'),
           ),
         ],
       ),
@@ -2364,7 +2364,7 @@ class HomeInvitationAcceptedScreen extends StatelessWidget {
 
           HouselyButton(
             label: 'Review household',
-            onPressed: () => context.go('/tenancy-members-review'),
+            onPressed: () => context.go('/household-management'),
           ),
         ],
       ),
@@ -2407,83 +2407,60 @@ class HomeInvitationDeclinedScreen extends StatelessWidget {
     );
   }
 }
-class MemberAccessScreen
-    extends StatefulWidget {
-  const MemberAccessScreen({
-    required this.draft,
-    super.key,
-  });
+
+class MemberAccessScreen extends StatefulWidget {
+  const MemberAccessScreen({required this.draft, super.key});
 
   final AccessDraft draft;
 
   @override
-  State<MemberAccessScreen> createState() =>
-      _MemberAccessScreenState();
+  State<MemberAccessScreen> createState() => _MemberAccessScreenState();
 }
 
-class _MemberAccessScreenState
-    extends State<MemberAccessScreen> {
+class _MemberAccessScreenState extends State<MemberAccessScreen> {
   HouseholdAppRole? _selectedRole;
 
   @override
   void initState() {
     super.initState();
 
-    _selectedRole =
-        widget.draft
-            .selectedTenantMember
-            ?.appRole;
+    _selectedRole = widget.draft.selectedTenantMember?.appRole;
   }
 
   void _save() {
-    final member =
-        widget.draft.selectedTenantMember;
+    final member = widget.draft.selectedTenantMember;
 
     final role = _selectedRole;
 
-    if (member == null ||
-        role == null) {
+    if (member == null || role == null) {
       return;
     }
 
     member
       ..appRole = role
-      ..permissions =
-          permissionsForMember(
-        type: member.type,
-        role: role,
-      );
+      ..permissions = permissionsForMember(type: member.type, role: role);
 
-    context.replace(
-      '/member-access-saved',
-    );
+    context.replace('/member-access-saved');
   }
 
   @override
   Widget build(BuildContext context) {
-    final member =
-        widget.draft.selectedTenantMember;
+    final member = widget.draft.selectedTenantMember;
 
     if (member == null) {
       return AccessScaffold(
         eyebrow: 'Household',
         title: 'Member unavailable',
-        message:
-            'Return to the household and select a member.',
-        onBack: () => context.go(
-          '/tenancy-members-review',
-        ),
+        message: 'Return to the household and select a member.',
+        onBack: () => context.go('/tenancy-members-review'),
         child: HouselyButton(
           label: 'Back to household',
-          onPressed: () => context.go(
-            '/tenancy-members-review',
-          ),
+          onPressed: () => context.go('/tenancy-members-review'),
         ),
       );
     }
 
-    final isNamedTenant =
-        member.isNamedTenant;
+    final isNamedTenant = member.isNamedTenant;
 
     return AccessScaffold(
       eyebrow: 'Member access',
@@ -2492,109 +2469,76 @@ class _MemberAccessScreenState
           'Choose their Housely access. Tenancy status remains separate from app permissions.',
       onBack: () => context.pop(),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           HouselySurface(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   member.name,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
 
-                const SizedBox(
-                  height: HouselySpace.xs,
-                ),
+                const SizedBox(height: HouselySpace.xs),
 
                 Text(
-                  isNamedTenant
-                      ? 'Named on tenancy'
-                      : 'Household member',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium,
+                  isNamedTenant ? 'Named on tenancy' : 'Household member',
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
             ),
           ),
 
-          const SizedBox(
-            height: HouselySpace.xl,
-          ),
+          const SizedBox(height: HouselySpace.xl),
 
           HouselySelectionTile(
             title: 'Home admin',
             subtitle:
                 'Can manage members, shared bills, documents and Home settings.',
-            icon:
-                Icons.admin_panel_settings_outlined,
-            selected:
-                _selectedRole ==
-                HouseholdAppRole.setupAdmin,
+            icon: Icons.admin_panel_settings_outlined,
+            selected: _selectedRole == HouseholdAppRole.setupAdmin,
             onTap: () {
               setState(() {
-                _selectedRole =
-                    HouseholdAppRole
-                        .setupAdmin;
+                _selectedRole = HouseholdAppRole.setupAdmin;
               });
             },
           ),
 
-          const SizedBox(
-            height: HouselySpace.sm,
-          ),
+          const SizedBox(height: HouselySpace.sm),
 
           HouselySelectionTile(
             title: 'Standard access',
             subtitle: isNamedTenant
                 ? 'Can use shared features and view tenancy documents.'
                 : 'Can use normal shared household features.',
-            icon:
-                Icons.person_outline_rounded,
-            selected:
-                _selectedRole ==
-                HouseholdAppRole.standard,
+            icon: Icons.person_outline_rounded,
+            selected: _selectedRole == HouseholdAppRole.standard,
             onTap: () {
               setState(() {
-                _selectedRole =
-                    HouseholdAppRole
-                        .standard;
+                _selectedRole = HouseholdAppRole.standard;
               });
             },
           ),
 
           if (!isNamedTenant) ...[
-            const SizedBox(
-              height: HouselySpace.sm,
-            ),
+            const SizedBox(height: HouselySpace.sm),
 
             HouselySelectionTile(
               title: 'Guest access',
               subtitle:
                   'Limited access without household management permissions.',
-              icon:
-                  Icons.visibility_outlined,
-              selected:
-                  _selectedRole ==
-                  HouseholdAppRole.guest,
+              icon: Icons.visibility_outlined,
+              selected: _selectedRole == HouseholdAppRole.guest,
               onTap: () {
                 setState(() {
-                  _selectedRole =
-                      HouseholdAppRole
-                          .guest;
+                  _selectedRole = HouseholdAppRole.guest;
                 });
               },
             ),
           ],
 
-          const SizedBox(
-            height: HouselySpace.lg,
-          ),
+          const SizedBox(height: HouselySpace.lg),
 
           const HouselyPrivacyNotice(
             title: 'Tenancy status does not change',
@@ -2602,78 +2546,479 @@ class _MemberAccessScreenState
                 'Changing Housely access never adds or removes someone from a legal tenancy agreement.',
           ),
 
-          const SizedBox(
-            height: HouselySpace.xl,
-          ),
+          const SizedBox(height: HouselySpace.xl),
 
           HouselyButton(
             label: 'Save access',
-            onPressed:
-                _selectedRole == null
-                ? null
-                : _save,
+            onPressed: _selectedRole == null ? null : _save,
+          ),
+          if (!member.isCurrentUser) ...[
+            const SizedBox(height: HouselySpace.sm),
+
+            HouselyButton(
+              label: member.isVerifiedNamedTenant
+                  ? 'Review tenancy member'
+                  : 'Remove from Home',
+              style: member.isVerifiedNamedTenant
+                  ? HouselyButtonStyle.secondary
+                  : HouselyButtonStyle.destructive,
+              onPressed: member.isVerifiedNamedTenant
+                  ? () => context.push('/named-tenant-removal-info')
+                  : () => context.push('/remove-household-member'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class MemberAccessSavedScreen extends StatelessWidget {
+  const MemberAccessSavedScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  String _roleLabel(HouseholdAppRole role) => switch (role) {
+    HouseholdAppRole.setupAdmin => 'Home admin',
+    HouseholdAppRole.standard => 'Standard access',
+    HouseholdAppRole.guest => 'Guest access',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final member = draft.selectedTenantMember;
+
+    return AccessScaffold(
+      eyebrow: 'Member access',
+      title: 'Access updated',
+      message: 'The member’s Housely permissions have been saved.',
+      onBack: null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          HouselyMessageState(
+            kind: HouselyMessageKind.success,
+            title: member?.name ?? 'Member updated',
+            message: member == null
+                ? 'Access updated.'
+                : 'Role: ${_roleLabel(member.appRole)}',
+          ),
+
+          const SizedBox(height: HouselySpace.xl),
+
+          HouselyButton(
+            label: 'Back to household',
+            onPressed: () => context.go('/household-management'),
           ),
         ],
       ),
     );
   }
 }
-class MemberAccessSavedScreen
-    extends StatelessWidget {
-  const MemberAccessSavedScreen({
-    required this.draft,
-    super.key,
-  });
+
+class AddHouseholdMemberScreen extends StatefulWidget {
+  const AddHouseholdMemberScreen({required this.draft, super.key});
 
   final AccessDraft draft;
 
-  String _roleLabel(
-    HouseholdAppRole role,
-  ) =>
-      switch (role) {
-        HouseholdAppRole.setupAdmin =>
-          'Home admin',
-        HouseholdAppRole.standard =>
-          'Standard access',
-        HouseholdAppRole.guest =>
-          'Guest access',
-      };
+  @override
+  State<AddHouseholdMemberScreen> createState() =>
+      _AddHouseholdMemberScreenState();
+}
+
+class _AddHouseholdMemberScreenState extends State<AddHouseholdMemberScreen> {
+  final _name = TextEditingController();
+  final _phone = TextEditingController();
+
+  HouseholdMemberType _type = HouseholdMemberType.householdMember;
+
+  bool get _valid => _name.text.trim().isNotEmpty;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  void _continue() {
+    if (!_valid) return;
+
+    final normalisedPhone = _phone.text
+        .trim()
+        .replaceAll(' ', '')
+        .replaceAll('-', '');
+
+    final member = HouseholdMember(
+      id: widget.draft.nextHouseholdMemberId(),
+      name: _name.text.trim(),
+      phone: normalisedPhone.isEmpty ? null : normalisedPhone,
+      type: _type,
+      appRole: _type == HouseholdMemberType.guest
+          ? HouseholdAppRole.guest
+          : HouseholdAppRole.standard,
+      connectionStatus: HouseholdConnectionStatus.offApp,
+      invitationStatus: HouseholdInvitationStatus.none,
+      permissions: permissionsForMember(
+        type: _type,
+        role: _type == HouseholdMemberType.guest
+            ? HouseholdAppRole.guest
+            : HouseholdAppRole.standard,
+      ),
+    );
+
+    widget.draft.householdMembers.add(member);
+
+    widget.draft.selectedTenantMemberId = member.id;
+
+    context.replace('/household-member-added');
+  }
+
+  @override
+  Widget build(BuildContext context) => AccessScaffold(
+    eyebrow: 'Household',
+    title: 'Add household member',
+    message: 'Add someone who lives in or regularly uses this Home.',
+    onBack: () => context.pop(),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        HouselyField(
+          label: 'Full name',
+          controller: _name,
+          onChanged: (_) => setState(() {}),
+        ),
+
+        const SizedBox(height: HouselySpace.lg),
+
+        HouselyField(
+          label: 'Phone number (optional)',
+          hint: '+44 7700 900123',
+          type: HouselyFieldType.phone,
+          controller: _phone,
+        ),
+
+        const SizedBox(height: HouselySpace.xl),
+
+        HouselySelectionTile(
+          title: 'Household member',
+          subtitle:
+              'Lives in the Home but is not being marked as a named tenancy member.',
+          icon: Icons.home_outlined,
+          selected: _type == HouseholdMemberType.householdMember,
+          onTap: () {
+            setState(() {
+              _type = HouseholdMemberType.householdMember;
+            });
+          },
+        ),
+
+        const SizedBox(height: HouselySpace.sm),
+
+        HouselySelectionTile(
+          title: 'Guest / temporary resident',
+          subtitle: 'Limited access for someone staying temporarily.',
+          icon: Icons.person_outline_rounded,
+          selected: _type == HouseholdMemberType.guest,
+          onTap: () {
+            setState(() {
+              _type = HouseholdMemberType.guest;
+            });
+          },
+        ),
+
+        const SizedBox(height: HouselySpace.lg),
+
+        const HouselyPrivacyNotice(
+          title: 'This does not change the tenancy',
+          message:
+              'Adding someone here only creates a Housely household record.',
+        ),
+
+        const SizedBox(height: HouselySpace.xl),
+
+        HouselyButton(
+          label: 'Add member',
+          onPressed: _valid ? _continue : null,
+        ),
+      ],
+    ),
+  );
+}
+
+class HouseholdMemberAddedScreen extends StatelessWidget {
+  const HouseholdMemberAddedScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
 
   @override
   Widget build(BuildContext context) {
-    final member =
-        draft.selectedTenantMember;
+    final member = draft.selectedTenantMember;
 
     return AccessScaffold(
-      eyebrow: 'Member access',
-      title: 'Access updated',
-      message:
-          'The member’s Housely permissions have been saved.',
+      eyebrow: 'Household',
+      title: 'Household member added',
+      message: 'This person is now included in the Home.',
       onBack: null,
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           HouselyMessageState(
-            kind:
-                HouselyMessageKind.success,
-            title:
-                member?.name ?? 'Member updated',
-            message: member == null
-                ? 'Access updated.'
-                : 'Role: ${_roleLabel(member.appRole)}',
+            kind: HouselyMessageKind.success,
+            title: member?.name ?? 'Member added',
+            message: member?.type == HouseholdMemberType.guest
+                ? 'Added as a guest / temporary resident.'
+                : 'Added as a household member.',
           ),
 
-          const SizedBox(
-            height: HouselySpace.xl,
-          ),
+          const SizedBox(height: HouselySpace.xl),
 
           HouselyButton(
             label: 'Back to household',
-            onPressed: () =>
-                context.go(
-                  '/tenancy-members-review',
-                ),
+            onPressed: () => context.go('/household-management'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class RemoveHouseholdMemberScreen extends StatelessWidget {
+  const RemoveHouseholdMemberScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  void _remove(BuildContext context) {
+    final member = draft.selectedTenantMember;
+
+    if (member == null || member.isVerifiedNamedTenant) {
+      return;
+    }
+
+    draft.householdMembers.removeWhere((item) => item.id == member.id);
+
+    draft.selectedTenantMemberId = null;
+
+    context.replace('/household-management');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final member = draft.selectedTenantMember;
+
+    return AccessScaffold(
+      eyebrow: 'Household',
+      title: 'Remove member?',
+      message:
+          'This removes their Housely Home access and household membership.',
+      onBack: () => context.pop(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          HouselyMessageState(
+            kind: HouselyMessageKind.empty,
+            title: member?.name ?? 'Household member',
+            message:
+                'Their historical records can remain, but they will no longer be an active Home member.',
+          ),
+
+          const SizedBox(height: HouselySpace.xl),
+
+          HouselyButton(
+            label: 'Remove from Home',
+            style: HouselyButtonStyle.destructive,
+            onPressed: () => _remove(context),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class NamedTenantRemovalInfoScreen extends StatelessWidget {
+  const NamedTenantRemovalInfoScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  @override
+  Widget build(BuildContext context) {
+    final member = draft.selectedTenantMember;
+
+    return AccessScaffold(
+      eyebrow: 'Tenancy member',
+      title: 'This member cannot be directly removed',
+      message:
+          'Their Housely access and their tenancy status must be handled separately.',
+      onBack: () => context.pop(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          HouselyMessageState(
+            kind: HouselyMessageKind.empty,
+            title: member?.name ?? 'Named tenancy member',
+            message:
+                'Because this person is verified as named on the tenancy, Housely will not silently remove them as an ordinary household member.',
+          ),
+
+          const SizedBox(height: HouselySpace.lg),
+
+          const HouselyPrivacyNotice(
+            title: 'Why this is protected',
+            message:
+                'Changing app membership must not be presented as changing anyone’s legal tenancy status.',
+          ),
+
+          const SizedBox(height: HouselySpace.xl),
+
+          HouselyButton(
+            label: 'Back to member access',
+            onPressed: () => context.pop(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HouseholdManagementScreen extends StatelessWidget {
+  const HouseholdManagementScreen({required this.draft, super.key});
+
+  final AccessDraft draft;
+
+  String _status(HouseholdMember member) {
+    if (member.isCurrentUser) {
+      return 'You · Connected';
+    }
+
+    if (member.invitationStatus == HouseholdInvitationStatus.declined) {
+      return 'Invite declined';
+    }
+
+    return switch (member.connectionStatus) {
+      HouseholdConnectionStatus.connected => 'Connected',
+      HouseholdConnectionStatus.invitePending => 'Invite pending',
+      HouseholdConnectionStatus.offApp => 'Off-app',
+      HouseholdConnectionStatus.notConnected => 'Not connected',
+    };
+  }
+
+  String _role(HouseholdMember member) {
+    final type = switch (member.type) {
+      HouseholdMemberType.namedTenant => 'Named tenant',
+      HouseholdMemberType.householdMember => 'Household member',
+      HouseholdMemberType.guest => 'Guest',
+    };
+
+    final appRole = switch (member.appRole) {
+      HouseholdAppRole.setupAdmin => 'Home admin',
+      HouseholdAppRole.standard => 'Standard',
+      HouseholdAppRole.guest => 'Guest access',
+    };
+
+    return '$type · $appRole';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    draft.initialiseHouseholdMembersFromTenancy();
+
+    final tenancyMembers = draft.householdMembers
+        .where((member) => member.type == HouseholdMemberType.namedTenant)
+        .toList();
+
+    final otherMembers = draft.householdMembers
+        .where((member) => member.type != HouseholdMemberType.namedTenant)
+        .toList();
+
+    return AccessScaffold(
+      eyebrow: 'Household',
+      title: 'Manage your household',
+      message:
+          'Review tenancy members, household members, guests and pending invitations.',
+      onBack: () => context.go('/home'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Tenancy members',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+
+          const SizedBox(height: HouselySpace.sm),
+
+          HouselyGroupedList(
+            children: tenancyMembers
+                .map(
+                  (member) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(member.name),
+                    subtitle: Text('${_role(member)}\n${_status(member)}'),
+                    isThreeLine: true,
+                    trailing: member.isCurrentUser
+                        ? null
+                        : const Icon(Icons.chevron_right_rounded),
+                    onTap: member.isCurrentUser
+                        ? null
+                        : () {
+                            draft.selectedTenantMemberId = member.id;
+
+                            if (member.connectionStatus ==
+                                    HouseholdConnectionStatus.connected ||
+                                member.connectionStatus ==
+                                    HouseholdConnectionStatus.offApp) {
+                              context.push('/member-access');
+                            } else {
+                              context.push('/connect-tenant-member');
+                            }
+                          },
+                  ),
+                )
+                .toList(),
+          ),
+
+          if (otherMembers.isNotEmpty) ...[
+            const SizedBox(height: HouselySpace.xl),
+
+            Text(
+              'Other household members',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+
+            const SizedBox(height: HouselySpace.sm),
+
+            HouselyGroupedList(
+              children: otherMembers
+                  .map(
+                    (member) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(member.name),
+                      subtitle: Text('${_role(member)}\n${_status(member)}'),
+                      isThreeLine: true,
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () {
+                        draft.selectedTenantMemberId = member.id;
+
+                        context.push('/member-access');
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+
+          const SizedBox(height: HouselySpace.xl),
+
+          HouselyButton(
+            label: 'Add household member',
+            onPressed: () => context.push('/add-household-member'),
+          ),
+
+          const SizedBox(height: HouselySpace.sm),
+
+          HouselyButton(
+            label: 'Finish',
+            style: HouselyButtonStyle.text,
+            onPressed: () => context.go('/home'),
           ),
         ],
       ),

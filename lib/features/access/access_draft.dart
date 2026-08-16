@@ -55,7 +55,6 @@ class AccessDraft {
   bool tenancySetupComplete = false;
 
   // Members
-  // Members
   final List<String> invites = [];
 
   /// Structured household members used by Phase 4+.
@@ -75,6 +74,12 @@ class AccessDraft {
   /// Mock incoming invitation context.
   /// Later this comes from the backend.
   String? incomingInvitationMemberId;
+  int householdMemberSequence = 0;
+
+  String nextHouseholdMemberId() {
+    householdMemberSequence++;
+    return 'household-member-$householdMemberSequence';
+  }
 
   HouseholdMember? get incomingInvitationMember {
     final id = incomingInvitationMemberId;

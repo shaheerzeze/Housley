@@ -803,4 +803,327 @@ void main() {
 
     expect(find.textContaining('Alex Morgan'), findsWidgets);
   });
+
+  testWidgets('pending Home invitation can be accepted', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-processing'),
+    );
+
+    await tester.pump();
+
+    await tester.pump(const Duration(seconds: 3));
+
+    await tester.pumpAndSettle();
+
+    final reviewMatch = find.text('Review my match');
+
+    await tester.ensureVisible(reviewMatch);
+    await tester.tap(reviewMatch);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Muhammad Shaheer Shoukathali'));
+
+    await tester.pumpAndSettle();
+
+    final continueButton = find.text('Continue');
+
+    await tester.ensureVisible(continueButton);
+
+    await tester.tap(continueButton);
+    await tester.pumpAndSettle();
+
+    final confirm = find.text('Yes, this is me');
+
+    await tester.ensureVisible(confirm);
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+
+    final roleContinue = find.text('Continue');
+
+    await tester.ensureVisible(roleContinue);
+
+    await tester.tap(roleContinue);
+    await tester.pumpAndSettle();
+
+    final alex = find.text('Alex Morgan');
+
+    await tester.ensureVisible(alex);
+    await tester.tap(alex);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).last, '+447700900123');
+
+    await tester.pumpAndSettle();
+
+    final findAccount = find.widgetWithText(
+      HouselyButton,
+      'Find Housely account',
+    );
+
+    await tester.ensureVisible(findAccount);
+
+    await tester.tap(findAccount);
+
+    await tester.pump();
+
+    await tester.pump(const Duration(milliseconds: 700));
+
+    await tester.pumpAndSettle();
+
+    final sendInvite = find.widgetWithText(
+      HouselyButton,
+      'Send Home invitation',
+    );
+
+    await tester.ensureVisible(sendInvite);
+
+    await tester.tap(sendInvite);
+    await tester.pumpAndSettle();
+
+    final preview = find.widgetWithText(
+      HouselyButton,
+      'Preview recipient invitation',
+    );
+
+    await tester.ensureVisible(preview);
+    await tester.tap(preview);
+    await tester.pumpAndSettle();
+
+    expect(find.text('You’ve been invited to a Home'), findsOneWidget);
+
+    final accept = find.widgetWithText(HouselyButton, 'Accept invitation');
+
+    await tester.ensureVisible(accept);
+    await tester.tap(accept);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Invitation accepted'), findsOneWidget);
+
+    expect(find.text('Alex Morgan is connected'), findsOneWidget);
+  });
+
+  testWidgets('pending Home invitation can be declined', (tester) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-processing'),
+    );
+
+    await tester.pump();
+
+    await tester.pump(const Duration(seconds: 3));
+
+    await tester.pumpAndSettle();
+
+    final reviewMatch = find.text('Review my match');
+
+    await tester.ensureVisible(reviewMatch);
+    await tester.tap(reviewMatch);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Muhammad Shaheer Shoukathali'));
+
+    await tester.pumpAndSettle();
+
+    final continueButton = find.text('Continue');
+
+    await tester.ensureVisible(continueButton);
+
+    await tester.tap(continueButton);
+    await tester.pumpAndSettle();
+
+    final confirm = find.text('Yes, this is me');
+
+    await tester.ensureVisible(confirm);
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+
+    final roleContinue = find.text('Continue');
+
+    await tester.ensureVisible(roleContinue);
+
+    await tester.tap(roleContinue);
+    await tester.pumpAndSettle();
+
+    final alex = find.text('Alex Morgan');
+
+    await tester.ensureVisible(alex);
+    await tester.tap(alex);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).last, '+447700900123');
+
+    await tester.pumpAndSettle();
+
+    final findAccount = find.widgetWithText(
+      HouselyButton,
+      'Find Housely account',
+    );
+
+    await tester.ensureVisible(findAccount);
+
+    await tester.tap(findAccount);
+
+    await tester.pump();
+
+    await tester.pump(const Duration(milliseconds: 700));
+
+    await tester.pumpAndSettle();
+
+    final sendInvite = find.widgetWithText(
+      HouselyButton,
+      'Send Home invitation',
+    );
+
+    await tester.ensureVisible(sendInvite);
+
+    await tester.tap(sendInvite);
+    await tester.pumpAndSettle();
+
+    final preview = find.widgetWithText(
+      HouselyButton,
+      'Preview recipient invitation',
+    );
+
+    await tester.ensureVisible(preview);
+    await tester.tap(preview);
+    await tester.pumpAndSettle();
+
+    final decline = find.widgetWithText(HouselyButton, 'Decline invitation');
+
+    await tester.ensureVisible(decline);
+    await tester.tap(decline);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Invitation declined'), findsOneWidget);
+
+    expect(find.text('Alex Morgan declined'), findsOneWidget);
+  });
+  testWidgets('connected member access can be changed to Home admin', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const HouselyApp(initialLocation: '/tenancy-processing'),
+    );
+
+    await tester.pump();
+
+    await tester.pump(const Duration(seconds: 3));
+
+    await tester.pumpAndSettle();
+
+    final reviewMatch = find.text('Review my match');
+
+    await tester.ensureVisible(reviewMatch);
+    await tester.tap(reviewMatch);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Muhammad Shaheer Shoukathali'));
+
+    await tester.pumpAndSettle();
+
+    final continueButton = find.text('Continue');
+
+    await tester.ensureVisible(continueButton);
+
+    await tester.tap(continueButton);
+    await tester.pumpAndSettle();
+
+    final confirm = find.text('Yes, this is me');
+
+    await tester.ensureVisible(confirm);
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+
+    final roleContinue = find.text('Continue');
+
+    await tester.ensureVisible(roleContinue);
+
+    await tester.tap(roleContinue);
+    await tester.pumpAndSettle();
+
+    final alex = find.text('Alex Morgan');
+
+    await tester.ensureVisible(alex);
+    await tester.tap(alex);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).last, '+447700900123');
+
+    await tester.pumpAndSettle();
+
+    final findAccount = find.widgetWithText(
+      HouselyButton,
+      'Find Housely account',
+    );
+
+    await tester.ensureVisible(findAccount);
+
+    await tester.tap(findAccount);
+
+    await tester.pump();
+
+    await tester.pump(const Duration(milliseconds: 700));
+
+    await tester.pumpAndSettle();
+
+    final sendInvite = find.widgetWithText(
+      HouselyButton,
+      'Send Home invitation',
+    );
+
+    await tester.ensureVisible(sendInvite);
+
+    await tester.tap(sendInvite);
+    await tester.pumpAndSettle();
+
+    final preview = find.widgetWithText(
+      HouselyButton,
+      'Preview recipient invitation',
+    );
+
+    await tester.ensureVisible(preview);
+    await tester.tap(preview);
+    await tester.pumpAndSettle();
+
+    final accept = find.widgetWithText(HouselyButton, 'Accept invitation');
+
+    await tester.ensureVisible(accept);
+    await tester.tap(accept);
+    await tester.pumpAndSettle();
+
+    final reviewHousehold = find.widgetWithText(
+      HouselyButton,
+      'Review household',
+    );
+
+    await tester.ensureVisible(reviewHousehold);
+
+    await tester.tap(reviewHousehold);
+    await tester.pumpAndSettle();
+
+    final connectedAlex = find.text('Alex Morgan');
+
+    await tester.ensureVisible(connectedAlex);
+
+    await tester.tap(connectedAlex);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Manage Alex Morgan'), findsOneWidget);
+
+    final homeAdmin = find.text('Home admin');
+
+    await tester.ensureVisible(homeAdmin);
+    await tester.tap(homeAdmin);
+    await tester.pumpAndSettle();
+
+    final saveAccess = find.widgetWithText(HouselyButton, 'Save access');
+
+    await tester.ensureVisible(saveAccess);
+
+    await tester.tap(saveAccess);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Access updated'), findsOneWidget);
+
+    expect(find.text('Role: Home admin'), findsOneWidget);
+  });
 }

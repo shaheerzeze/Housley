@@ -173,6 +173,30 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         builder: (context, state) => MemberAccessSavedScreen(draft: draft),
       ),
       GoRoute(
+        path: '/household-management',
+        builder: (context, state) => HouseholdManagementScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/add-household-member',
+        builder: (context, state) => AddHouseholdMemberScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/household-member-added',
+        builder: (context, state) => HouseholdMemberAddedScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/remove-household-member',
+        builder: (context, state) => RemoveHouseholdMemberScreen(draft: draft),
+      ),
+
+      GoRoute(
+        path: '/named-tenant-removal-info',
+        builder: (context, state) => NamedTenantRemovalInfoScreen(draft: draft),
+      ),
+      GoRoute(
         path: '/attention',
         builder: (context, state) => AttentionScreen(state: homeState),
       ),
