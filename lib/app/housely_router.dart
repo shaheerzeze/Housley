@@ -9,7 +9,10 @@ import '../features/access/access_draft.dart';
 import '../features/access/access_screens.dart';
 import '../features/access/join_home_screens.dart';
 import '../features/access/join_home_state.dart';
+import '../features/access/streamlined_create_home_flow.dart';
+import '../features/home/home_entry_screen.dart';
 import '../features/home/home_screens.dart';
+import '../features/home/home_setup_state.dart';
 import '../features/home/home_state.dart';
 import '../features/shell/app_shell.dart';
 import '../features/split/split_screens.dart';
@@ -30,10 +33,12 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
   final draft = AccessDraft();
   final joinHomeState = JoinHomeState();
   final homeState = HomeFeatureState();
+  final homeSetupState = HomeSetupState();
   final splitState = SplitFeatureState();
   final vaultState = VaultFeatureState();
   final stuffState = StuffFeatureState();
   final repository = MockHouselyRepository();
+
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: initialLocation,
@@ -46,12 +51,10 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         path: '/sign-in',
         builder: (context, state) => SignInScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/forgot-password',
         builder: (context, state) => ForgotPasswordScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/password-reset-sent',
         builder: (context, state) => PasswordResetSentScreen(draft: draft),
@@ -68,6 +71,8 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         path: '/start-choice',
         builder: (context, state) => const StartChoiceScreen(),
       ),
+
+      // JOIN HOME — existing code/QR flow stays intact.
       GoRoute(
         path: '/join-home',
         builder: (context, state) => JoinHomeScreen(
@@ -76,94 +81,107 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
           initialCode: state.uri.queryParameters['code'],
         ),
       ),
-
       GoRoute(
         path: '/invite-home',
         builder: (context, state) =>
             InviteToHomeScreen(draft: draft, state: joinHomeState),
       ),
-
       GoRoute(
         path: '/scan-home-qr',
         builder: (context, state) => ScanHomeQrScreen(state: joinHomeState),
       ),
-
       GoRoute(
         path: '/join-home-preview',
         builder: (context, state) =>
             JoinHomePreviewScreen(draft: draft, state: joinHomeState),
       ),
-
       GoRoute(
         path: '/join-home-success',
         builder: (context, state) =>
             JoinHomeSuccessScreen(state: joinHomeState),
       ),
 
+      // STREAMLINED CREATE HOME.
+      // Existing URLs are retained so the rest of the app does not need to
+      // know that the onboarding implementation changed.
       GoRoute(
         path: '/create-home',
-        builder: (context, state) => CreateHomeScreen(draft: draft),
+        builder: (context, state) => StreamlinedCreateHomeScreen(draft: draft),
       ),
       GoRoute(
         path: '/tenancy-status',
-        builder: (context, state) => TenancyStatusScreen(draft: draft),
+        builder: (context, state) =>
+            StreamlinedTenancyStatusScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/upload-tenancy',
-        builder: (context, state) => UploadTenancyScreen(draft: draft),
+        builder: (context, state) =>
+            StreamlinedUploadTenancyScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/tenancy-processing',
-        builder: (context, state) => TenancyProcessingScreen(draft: draft),
+        builder: (context, state) =>
+            StreamlinedTenancyProcessingScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/tenancy-detected',
-        builder: (context, state) => DetectedTenantsScreen(draft: draft),
+        builder: (context, state) =>
+            StreamlinedClaimTenancyNameScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/tenant-match',
-        builder: (context, state) => TenantMatchScreen(draft: draft),
+        builder: (context, state) =>
+            StreamlinedClaimTenancyNameScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/tenant-match-confirm',
-        builder: (context, state) => TenantMatchConfirmScreen(draft: draft),
+        builder: (context, state) =>
+            StreamlinedConfirmTenancyIdentityScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/tenant-match-missing',
-        builder: (context, state) => TenantMatchMissingScreen(draft: draft),
+        builder: (context, state) =>
+            StreamlinedTenancyNameMissingScreen(draft: draft),
       ),
 
+      // Progressive first-Home setup. These are optional, non-blocking routes.
+      GoRoute(
+        path: '/setup-rent',
+        builder: (context, state) => AddRentSetupScreen(state: homeSetupState),
+      ),
+      GoRoute(
+        path: '/setup-recurring',
+        builder: (context, state) =>
+            AddRecurringSetupScreen(state: homeSetupState),
+      ),
+      GoRoute(
+        path: '/setup-move-in',
+        builder: (context, state) => MoveInSetupScreen(state: homeSetupState),
+      ),
+
+      // LEGACY / POST-ONBOARDING HOUSEHOLD MANAGEMENT.
+      // These routes remain available because member connection and invitations
+      // now belong inside the Home rather than the mandatory creator journey.
       GoRoute(
         path: '/tenancy-role',
         builder: (context, state) => TenancyRoleScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/tenancy-members-review',
         builder: (context, state) => TenancyMembersReviewScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/tenancy-complete',
         builder: (context, state) => TenancySetupCompleteScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/connect-tenant-member',
         builder: (context, state) => ConnectTenantMemberScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/member-account-found',
         builder: (context, state) => MemberAccountFoundScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/member-account-not-found',
         builder: (context, state) => MemberAccountNotFoundScreen(draft: draft),
@@ -180,12 +198,10 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         path: '/home-invitation',
         builder: (context, state) => HomeInvitationScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/home-invitation-accepted',
         builder: (context, state) => HomeInvitationAcceptedScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/home-invitation-declined',
         builder: (context, state) => HomeInvitationDeclinedScreen(draft: draft),
@@ -198,7 +214,6 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         path: '/member-access',
         builder: (context, state) => MemberAccessScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/member-access-saved',
         builder: (context, state) => MemberAccessSavedScreen(draft: draft),
@@ -207,26 +222,24 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         path: '/household-management',
         builder: (context, state) => HouseholdManagementScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/add-household-member',
         builder: (context, state) => AddHouseholdMemberScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/household-member-added',
         builder: (context, state) => HouseholdMemberAddedScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/remove-household-member',
         builder: (context, state) => RemoveHouseholdMemberScreen(draft: draft),
       ),
-
       GoRoute(
         path: '/named-tenant-removal-info',
         builder: (context, state) => NamedTenantRemovalInfoScreen(draft: draft),
       ),
+
+      // Existing Home subflows.
       GoRoute(
         path: '/attention',
         builder: (context, state) => AttentionScreen(state: homeState),
@@ -251,6 +264,8 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         path: '/expense-detail',
         builder: (context, state) => ExpenseDetailPlaceholder(state: homeState),
       ),
+
+      // Split.
       GoRoute(
         path: '/add-expense',
         builder: (context, state) => AddExpenseScreen(state: splitState),
@@ -271,6 +286,8 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         path: '/record-settlement',
         builder: (context, state) => RecordSettlementScreen(state: splitState),
       ),
+
+      // Vault.
       GoRoute(
         path: '/upload-document',
         builder: (context, state) => UploadDocumentScreen(state: vaultState),
@@ -291,6 +308,8 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         path: '/review-lock',
         builder: (context, state) => ReviewLockScreen(state: vaultState),
       ),
+
+      // Stuff.
       GoRoute(
         path: '/add-item',
         builder: (context, state) => AddItemScreen(state: stuffState),
@@ -303,6 +322,7 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         path: '/item-detail',
         builder: (context, state) => ItemDetailScreen(state: stuffState),
       ),
+
       GoRoute(
         path: '/more',
         builder: (context, state) => const MoreMenuScreen(),
@@ -316,6 +336,7 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         builder: (context, state) =>
             AccessibilityReviewScreen(repository: repository),
       ),
+
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             HouselyAppShell(navigationShell: navigationShell),
@@ -325,11 +346,8 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
             routes: [
               GoRoute(
                 path: '/home',
-                builder: (context, state) => ScenarioGate(
-                  repository: repository,
-                  section: 'Home',
-                  child: HomeCommandScreen(state: homeState),
-                ),
+                builder: (context, state) =>
+                    HomeEntryScreen(draft: draft, setupState: homeSetupState),
               ),
             ],
           ),
