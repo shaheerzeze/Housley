@@ -22,125 +22,166 @@ class _HomeCommandScreenState extends State<HomeCommandScreen> {
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: widget.state,
-    builder: (context, _) => SafeArea(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: Column(
-            children: [
-              _CompactHomeHeader(onMore: () => showHouselyMoreSheet(context)),
-              const Divider(height: 1),
-              Expanded(
-                child: Stack(
-                  children: [
-                    ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 25, 20, 112),
-                      children: [
-                        Text(
-                          'Good evening, Shaheer  👋',
-                          style: Theme.of(context).textTheme.headlineLarge,
+    builder: (context, _) {
+      final scenario = widget.state.scenario;
+      final model = _HomeModel.forScenario(scenario);
+      return SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: HouselySize.maxContentWidth),
+            child: Column(
+              children: [
+                _HomeHeader(model: model),
+                const Divider(height: 1),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      ListView(
+                        key: ValueKey(scenario),
+                        padding: const EdgeInsets.fromLTRB(
+                          HouselySize.phoneGutter,
+                          HouselySpace.xl,
+                          HouselySize.phoneGutter,
+                          112,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Monday, 17 August · Edinburgh',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                        const SizedBox(height: 22),
-                        _OverviewCard(state: widget.state),
-                        const SizedBox(height: 28),
-                        _SectionTitle(
-                          title: 'Needs your attention',
-                          action: 'See all',
-                          onAction: () => context.push('/attention'),
-                        ),
-                        const SizedBox(height: 10),
-                        _AttentionCard(state: widget.state),
-                        const SizedBox(height: 28),
-                        const _SectionTitle(
-                          title: 'Today',
-                          action: 'Open calendar',
-                        ),
-                        const SizedBox(height: 4),
-                        const _TodayList(),
-                        const SizedBox(height: 24),
-                        const _SectionTitle(title: 'Your home at a glance'),
-                        const SizedBox(height: 10),
-                        const _HomeSnapshotGrid(),
-                        const SizedBox(height: 26),
-                        const _SectionTitle(
-                          title: 'Recent activity',
-                          action: 'View history',
-                        ),
-                        const SizedBox(height: 10),
-                        const _ActivityCard(),
-                      ],
-                    ),
-                    if (addOpen)
-                      Positioned.fill(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          key: const ValueKey('add-menu-scrim'),
-                          onTap: () => setState(() => addOpen = false),
-                          child: const ColoredBox(color: HouselyPalette.scrim),
-                        ),
+                        children: _content(context, model),
                       ),
-                    Positioned(
-                      right: 20,
-                      bottom: 14,
-                      child: _AddMenu(
-                        open: addOpen,
-                        onToggle: () => setState(() => addOpen = !addOpen),
-                      ),
-                    ),
-                  ],
+                      if (addOpen)
+                        Positioned.fill(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            key: const ValueKey('add-menu-scrim'),
+                            onTap: () => setState(() => addOpen = false),
+                            child: const ColoredBox(color: HouselyPalette.scrim),
+                          ),
+                        ),
+                      if (!model.readOnly)
+                        Positioned(
+                          right: HouselySize.phoneGutter,
+                          bottom: HouselySpace.md,
+                          child: _AddMenu(
+                            open: addOpen,
+                            admin: model.admin,
+                            onToggle: () => setState(() => addOpen = !addOpen),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
-    ),
+      );
+    },
   );
+
+  List<Widget> _content(BuildContext context, _HomeModel model) {
+    if (model.scenario == HomeScenario.noHome) {
+      return [
+        const _Greeting(),
+        const SizedBox(height: HouselySpace.xl),
+        _NoHomeCard(),
+        const SizedBox(height: HouselySpace.section),
+        const _SectionTitle(title: 'Start personally'),
+        const SizedBox(height: HouselySpace.sm),
+        const _PersonalTools(),
+      ];
+    }
+
+    return [
+      if (model.showGreeting) ...[
+        const _Greeting(),
+        const SizedBox(height: HouselySpace.xl),
+      ],
+      if (model.priority != null) ...[
+        _PriorityCard(priority: model.priority!),
+        const SizedBox(height: HouselySpace.section),
+      ],
+      if (model.summary != null) ...[
+        _SectionTitle(title: model.summary!.sectionTitle),
+        const SizedBox(height: HouselySpace.sm),
+        _MonthlySummary(summary: model.summary!),
+        const SizedBox(height: HouselySpace.section),
+      ],
+      if (model.attention.isNotEmpty) ...[
+        _SectionTitle(
+          title: 'Home status',
+          action: model.attention.length > 2 ? 'View all' : null,
+          onAction: () => context.push('/attention'),
+        ),
+        const SizedBox(height: HouselySpace.sm),
+        _AttentionList(items: model.attention.take(2).toList()),
+        const SizedBox(height: HouselySpace.section),
+      ],
+      if (model.showHousehold) ...[
+        _SectionTitle(
+          title: 'Household',
+          action: model.admin ? 'Manage' : 'View',
+          onAction: () => context.push('/household'),
+        ),
+        const SizedBox(height: HouselySpace.sm),
+        _HouseholdPreview(admin: model.admin),
+        const SizedBox(height: HouselySpace.section),
+      ],
+      if (model.scenario == HomeScenario.movingOut) ...[
+        const _MoveOutEvidence(),
+        const SizedBox(height: HouselySpace.section),
+      ],
+      const _SectionTitle(title: 'Quick view'),
+      const SizedBox(height: HouselySpace.sm),
+      _QuickView(model: model),
+      const SizedBox(height: HouselySpace.section),
+      const _SectionTitle(title: 'Recent activity', action: 'View all'),
+      const SizedBox(height: HouselySpace.sm),
+      _ActivityList(scenario: model.scenario),
+    ];
+  }
 }
 
-class _CompactHomeHeader extends StatelessWidget {
-  const _CompactHomeHeader({required this.onMore});
-
-  final VoidCallback onMore;
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader({required this.model});
+  final _HomeModel model;
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 15, 20, 15),
+    padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
     child: LayoutBuilder(
       builder: (context, constraints) => Row(
         children: [
           const HomePulse(size: 40),
-          const SizedBox(width: 10),
+          const SizedBox(width: HouselySpace.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'George Street Flat',
+                  model.scenario == HomeScenario.noHome
+                      ? 'Your Housely'
+                      : 'George Street Flat',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 1),
                 Text(
-                  '3 people · All at home',
+                  model.headerDetail,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
             ),
           ),
-          if (constraints.maxWidth >= 340)
+          if (model.scenario != HomeScenario.noHome && constraints.maxWidth >= 340)
             const HouselyAvatarGroup(
-              names: ['Muhammad Shaheer', 'Alex Morgan', 'Sam Lee'],
+              names: ['Muhammad Shaheer', 'Alex Morgan', 'Meera Thomas'],
             ),
-          const SizedBox(width: 8),
+          const SizedBox(width: HouselySpace.xs),
           HouselyIconButton(
             icon: Icons.grid_view_rounded,
             label: 'More',
-            onPressed: onMore,
+            onPressed: () => showHouselyMoreSheet(context),
           ),
         ],
       ),
@@ -148,256 +189,353 @@ class _CompactHomeHeader extends StatelessWidget {
   );
 }
 
-class _OverviewCard extends StatelessWidget {
-  const _OverviewCard({required this.state});
-
-  final HomeFeatureState state;
+class _Greeting extends StatelessWidget {
+  const _Greeting();
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.fromLTRB(20, 20, 20, 15),
-    decoration: BoxDecoration(
-      color: HouselyPalette.violetSoft,
-      borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: HouselyPalette.divider),
-    ),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Good evening, Shaheer 👋', style: Theme.of(context).textTheme.headlineLarge),
+      const SizedBox(height: HouselySpace.xxs),
+      Text('Monday, 17 August · Edinburgh', style: Theme.of(context).textTheme.bodyMedium),
+    ],
+  );
+}
+
+class _NoHomeCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => _TonalCard(
+    color: HouselyPalette.violetSoft,
     child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.monitor_heart_outlined,
-                        color: HouselyPalette.violet,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'HOME PULSE',
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: HouselyPalette.violet,
-                          letterSpacing: .2,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${state.attentionCount} things need\nyour attention',
-                    style: Theme.of(context).textTheme.headlineLarge,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            const _CompletionRing(value: .67),
-          ],
+        const _IconTile(icon: Icons.home_outlined, color: HouselyPalette.violet),
+        const SizedBox(height: HouselySpace.md),
+        Text('Connect your Home', style: Theme.of(context).textTheme.headlineMedium),
+        const SizedBox(height: HouselySpace.xs),
+        Text(
+          'Create a household or join the people you already live with. Your personal records stay private.',
+          style: Theme.of(context).textTheme.bodyLarge,
         ),
-        const SizedBox(height: 18),
-        const Row(
-          children: [
-            Expanded(
-              child: _OverviewMetric(
-                value: '£126.40',
-                label: 'owed to you',
-                icon: Icons.pie_chart_outline_rounded,
-                color: HouselyPalette.sky,
-                iconColor: HouselyPalette.onAccent,
-              ),
-            ),
-            SizedBox(width: 10),
-            Expanded(
-              child: _OverviewMetric(
-                value: '£84.20',
-                label: 'due tomorrow',
-                icon: Icons.bolt_rounded,
-                color: HouselyPalette.amber,
-                iconColor: HouselyPalette.onAccent,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        Row(
-          children: [
-            const Icon(Icons.check_circle_outline_rounded, size: 18),
-            const SizedBox(width: 10),
-            Text(
-              '4 of 6 household tasks complete',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Container(
-          height: 6,
-          decoration: BoxDecoration(
-            color: HouselyPalette.surfacePressed,
-            borderRadius: BorderRadius.circular(99),
-          ),
-          alignment: Alignment.centerLeft,
-          child: FractionallySizedBox(
-            widthFactor: .67,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(99),
-                gradient: const LinearGradient(
-                  colors: [
-                    HouselyPalette.mint,
-                    HouselyPalette.sky,
-                    HouselyPalette.violet,
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 9),
-        TextButton.icon(
-          onPressed: () {},
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.zero,
-            foregroundColor: HouselyPalette.violet,
-          ),
-          label: const Text('View summary'),
-          icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-          iconAlignment: IconAlignment.end,
+        const SizedBox(height: HouselySpace.xl),
+        HouselyButton(label: 'Create a Home', onPressed: () => context.go('/create-home')),
+        const SizedBox(height: HouselySpace.xs),
+        HouselyButton(
+          label: 'Join with an invitation',
+          style: HouselyButtonStyle.secondary,
+          onPressed: () => context.go('/start-choice'),
         ),
       ],
     ),
   );
 }
 
-class _CompletionRing extends StatelessWidget {
-  const _CompletionRing({required this.value});
+class _PersonalTools extends StatelessWidget {
+  const _PersonalTools();
 
+  @override
+  Widget build(BuildContext context) => const Row(
+    children: [
+      Expanded(child: _SmallFeature(icon: Icons.folder_outlined, title: 'Vault', detail: 'Personal documents', color: HouselyPalette.lilacSoft)),
+      SizedBox(width: HouselySpace.sm),
+      Expanded(child: _SmallFeature(icon: Icons.chair_outlined, title: 'Stuff', detail: 'Your belongings', color: HouselyPalette.apricot)),
+    ],
+  );
+}
+
+class _PriorityCard extends StatelessWidget {
+  const _PriorityCard({required this.priority});
+  final _Priority priority;
+
+  @override
+  Widget build(BuildContext context) => _TonalCard(
+    color: priority.color,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            _IconTile(icon: priority.icon, color: priority.foreground),
+            const SizedBox(width: HouselySpace.sm),
+            Expanded(
+              child: Text(
+                priority.eyebrow.toUpperCase(),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(color: priority.foreground, letterSpacing: .7),
+              ),
+            ),
+            if (priority.progress != null)
+              Text(priority.progress!, style: Theme.of(context).textTheme.labelLarge),
+          ],
+        ),
+        const SizedBox(height: HouselySpace.md),
+        Text(priority.title, style: Theme.of(context).textTheme.headlineMedium),
+        const SizedBox(height: HouselySpace.xs),
+        Text(priority.detail, style: Theme.of(context).textTheme.bodyLarge),
+        if (priority.steps.isNotEmpty) ...[
+          const SizedBox(height: HouselySpace.lg),
+          for (final step in priority.steps)
+            Padding(
+              padding: const EdgeInsets.only(bottom: HouselySpace.sm),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(step.$2 ? Icons.check_circle_rounded : Icons.circle_outlined, size: 20, color: step.$2 ? HouselyPalette.mint : HouselyPalette.textTertiary),
+                  const SizedBox(width: HouselySpace.sm),
+                  Expanded(child: Text(step.$1, style: Theme.of(context).textTheme.bodyLarge)),
+                ],
+              ),
+            ),
+        ],
+        const SizedBox(height: HouselySpace.md),
+        HouselyButton(
+          label: priority.action,
+          onPressed: priority.route == null
+              ? null
+              : () => context.push(priority.route!),
+        ),
+      ],
+    ),
+  );
+}
+
+class _MonthlySummary extends StatelessWidget {
+  const _MonthlySummary({required this.summary});
+  final _Summary summary;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    borderRadius: BorderRadius.circular(HouselyRadius.feature),
+    onTap: () => context.go('/split'),
+    child: _TonalCard(
+      color: HouselyPalette.skySoft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(summary.amount, style: Theme.of(context).textTheme.displayLarge),
+                    const SizedBox(height: HouselySpace.xxs),
+                    Text(summary.label, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: HouselyPalette.textSecondary)),
+                  ],
+                ),
+              ),
+              _ProgressRing(value: summary.value),
+            ],
+          ),
+          const SizedBox(height: HouselySpace.lg),
+          Row(
+            children: [
+              Expanded(child: Text(summary.left, style: Theme.of(context).textTheme.bodyMedium)),
+              Text(summary.right, style: Theme.of(context).textTheme.bodyMedium),
+            ],
+          ),
+          const SizedBox(height: HouselySpace.sm),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(HouselyRadius.pill),
+            child: LinearProgressIndicator(
+              value: summary.value,
+              minHeight: 6,
+              backgroundColor: HouselyPalette.surfacePressed,
+              valueColor: const AlwaysStoppedAnimation(HouselyPalette.sky),
+            ),
+          ),
+          const SizedBox(height: HouselySpace.md),
+          Row(
+            children: [
+              const Icon(Icons.calendar_month_outlined, size: 18, color: HouselyPalette.sky),
+              const SizedBox(width: HouselySpace.xs),
+              Expanded(child: Text(summary.next, style: Theme.of(context).textTheme.bodyMedium)),
+              const Icon(Icons.chevron_right_rounded, size: 20),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _ProgressRing extends StatelessWidget {
+  const _ProgressRing({required this.value});
   final double value;
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      SizedBox.square(
-        dimension: 66,
-        child: CustomPaint(
-          painter: _RingPainter(value),
-          child: Center(
-            child: Text(
-              '${(value * 100).round()}%',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          ),
-        ),
-      ),
-      const SizedBox(height: 5),
-      Text(
-        '4 of 6\ncomplete',
-        textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.labelMedium,
-      ),
-    ],
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: 64,
+    child: CustomPaint(
+      painter: _RingPainter(value),
+      child: Center(child: Text('${(value * 100).round()}%', style: Theme.of(context).textTheme.titleMedium)),
+    ),
   );
 }
 
 class _RingPainter extends CustomPainter {
   const _RingPainter(this.value);
-
   final double value;
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
-    final track = Paint()
-      ..color = HouselyPalette.violetSoft
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 6;
-    final progress = Paint()
-      ..shader = const SweepGradient(
-        colors: [
-          HouselyPalette.violet,
-          HouselyPalette.sky,
-          HouselyPalette.mint,
-          HouselyPalette.violet,
-        ],
-      ).createShader(rect)
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 6;
+    final track = Paint()..color = HouselyPalette.surfacePressed..style = PaintingStyle.stroke..strokeWidth = 6;
+    final progress = Paint()..color = HouselyPalette.sky..style = PaintingStyle.stroke..strokeCap = StrokeCap.round..strokeWidth = 6;
     canvas.drawArc(rect.deflate(5), 0, math.pi * 2, false, track);
-    canvas.drawArc(
-      rect.deflate(5),
-      -math.pi / 2,
-      math.pi * 2 * value,
-      false,
-      progress,
-    );
+    canvas.drawArc(rect.deflate(5), -math.pi / 2, math.pi * 2 * value, false, progress);
   }
 
   @override
-  bool shouldRepaint(covariant _RingPainter oldDelegate) =>
-      value != oldDelegate.value;
+  bool shouldRepaint(covariant _RingPainter oldDelegate) => value != oldDelegate.value;
 }
 
-class _OverviewMetric extends StatelessWidget {
-  const _OverviewMetric({
-    required this.value,
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.iconColor,
-  });
-
-  final String value;
-  final String label;
-  final IconData icon;
-  final Color color;
-  final Color iconColor;
+class _AttentionList extends StatelessWidget {
+  const _AttentionList({required this.items});
+  final List<AttentionItem> items;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
-    decoration: BoxDecoration(
-      color: color,
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Row(
-      children: [
-        Icon(icon, size: 24, color: iconColor),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: HouselyPalette.onAccent,
-                ),
-              ),
-              const SizedBox(height: 1),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: HouselyPalette.onAccent,
-                ),
-              ),
-            ],
-          ),
+  Widget build(BuildContext context) => HouselyGroupedList(
+    children: [
+      for (final item in items)
+        HouselyRecordRow(
+          title: item.title,
+          subtitle: item.detail,
+          icon: item.id == 'bill' ? Icons.bolt_rounded : Icons.person_outline_rounded,
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => context.push(item.route),
         ),
-      ],
+    ],
+  );
+}
+
+class _HouseholdPreview extends StatelessWidget {
+  const _HouseholdPreview({required this.admin});
+  final bool admin;
+
+  @override
+  Widget build(BuildContext context) => const HouselyGroupedList(
+    children: [
+      HouselyMemberRow(name: 'Muhammad Shaheer', role: 'You · Home admin', status: 'Joined'),
+      HouselyMemberRow(name: 'Alex Morgan', role: 'Named on tenancy', status: 'Not joined'),
+      HouselyMemberRow(name: 'Meera Thomas', role: 'Household member', status: 'Joined'),
+    ],
+  );
+}
+
+class _MoveOutEvidence extends StatelessWidget {
+  const _MoveOutEvidence();
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const _SectionTitle(title: 'Move-in evidence'),
+      const SizedBox(height: HouselySpace.sm),
+      HouselyGroupedList(
+        children: [
+          HouselyRecordRow(
+            title: 'Move-in record · 12 August 2025',
+            subtitle: 'Locked ✓ · Ready to compare',
+            icon: Icons.lock_outline_rounded,
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.push('/deposit-guard'),
+          ),
+          const HouselyRecordRow(
+            title: 'Deposit return',
+            subtitle: 'Awaiting update',
+            icon: Icons.payments_outlined,
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+class _QuickView extends StatelessWidget {
+  const _QuickView({required this.model});
+  final _HomeModel model;
+
+  @override
+  Widget build(BuildContext context) => GridView.count(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    crossAxisCount: 2,
+    crossAxisSpacing: HouselySpace.sm,
+    mainAxisSpacing: HouselySpace.sm,
+    childAspectRatio: 1.52,
+    children: [
+      _QuickTile(title: 'Money', detail: model.moneyDetail, icon: Icons.payments_outlined, color: HouselyPalette.skySoft, route: '/split'),
+      const _QuickTile(title: 'Household', detail: '3 people · 1 pending', icon: Icons.people_outline_rounded, color: HouselyPalette.mintSoft, route: '/household'),
+      const _QuickTile(title: 'Documents', detail: '6 shared records', icon: Icons.folder_outlined, color: HouselyPalette.lilacSoft, route: '/vault'),
+      const _QuickTile(title: 'Stuff', detail: '19 recorded items', icon: Icons.chair_outlined, color: HouselyPalette.apricot, route: '/stuff'),
+    ],
+  );
+}
+
+class _QuickTile extends StatelessWidget {
+  const _QuickTile({required this.title, required this.detail, required this.icon, required this.color, required this.route});
+  final String title;
+  final String detail;
+  final IconData icon;
+  final Color color;
+  final String route;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: color,
+    borderRadius: BorderRadius.circular(HouselyRadius.group),
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: () => context.go(route),
+      child: Padding(
+        padding: const EdgeInsets.all(HouselySpace.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Icon(icon, size: HouselySize.icon),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: HouselySpace.xxs),
+                Text(detail, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
+          ],
+        ),
+      ),
     ),
   );
 }
 
+class _ActivityList extends StatelessWidget {
+  const _ActivityList({required this.scenario});
+  final HomeScenario scenario;
+
+  @override
+  Widget build(BuildContext context) {
+    if (scenario == HomeScenario.newAdmin || scenario == HomeScenario.newMember) {
+      return const HouselyMessageState(
+        kind: HouselyMessageKind.empty,
+        title: 'Activity will appear here',
+        message: 'Shared changes will be recorded as your Home gets set up.',
+      );
+    }
+    return const HouselyGroupedList(
+      children: [
+        HouselyRecordRow(title: 'Rent marked as paid', subtitle: 'Today · Household', icon: Icons.check_circle_outline_rounded),
+        HouselyRecordRow(title: 'Council tax added', subtitle: 'Yesterday · Household', icon: Icons.receipt_long_outlined),
+        HouselyRecordRow(title: 'Move-in evidence saved', subtitle: '15 August · Private', icon: Icons.lock_outline_rounded),
+      ],
+    );
+  }
+}
+
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.title, this.action, this.onAction});
-
   final String title;
   final String? action;
   final VoidCallback? onAction;
@@ -405,345 +543,80 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Expanded(
-        child: Text(title, style: Theme.of(context).textTheme.titleMedium),
-      ),
+      Expanded(child: Text(title, style: Theme.of(context).textTheme.titleLarge)),
       if (action != null)
-        TextButton(
-          onPressed: onAction ?? () {},
-          style: TextButton.styleFrom(
-            minimumSize: const Size(44, 36),
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-          ),
-          child: Text(action!),
-        ),
+        TextButton(onPressed: onAction ?? () {}, child: Text(action!)),
     ],
   );
 }
 
-class _AttentionCard extends StatelessWidget {
-  const _AttentionCard({required this.state});
-
-  final HomeFeatureState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final items = state.attention.where((item) => !item.resolved).toList();
-    if (items.isEmpty) {
-      return const HouselyMessageState(
-        kind: HouselyMessageKind.success,
-        title: 'All caught up',
-        message: 'Nothing needs your attention.',
-      );
-    }
-    return Container(
-      decoration: BoxDecoration(
-        color: HouselyPalette.surface,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        children: [
-          for (var index = 0; index < items.length; index++) ...[
-            _AttentionRow(item: items[index], index: index),
-            if (index != items.length - 1) const Divider(height: 1, indent: 62),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _AttentionRow extends StatelessWidget {
-  const _AttentionRow({required this.item, required this.index});
-
-  final AttentionItem item;
-  final int index;
-
-  @override
-  Widget build(BuildContext context) {
-    final icons = [
-      (Icons.bolt_rounded, HouselyPalette.onAccent, HouselyPalette.coral),
-      (
-        Icons.person_outline_rounded,
-        HouselyPalette.onAccent,
-        HouselyPalette.violet,
-      ),
-      (
-        Icons.photo_camera_outlined,
-        HouselyPalette.onAccent,
-        HouselyPalette.amber,
-      ),
-    ];
-    final visual = icons[index.clamp(0, icons.length - 1)];
-    final title = switch (item.id) {
-      'bill' => 'Electricity bill',
-      'deposit' => 'Deposit evidence',
-      _ => item.title,
-    };
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () => context.push(item.route),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: visual.$3,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(visual.$1, color: visual.$2, size: 23),
-            ),
-            const SizedBox(width: 11),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 1),
-                  Text(
-                    item.id == 'bill' ? '£84.20 · Due tomorrow' : item.detail,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded, size: 22),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TodayList extends StatelessWidget {
-  const _TodayList();
-
-  @override
-  Widget build(BuildContext context) => const Column(
-    children: [
-      _TodayRow(
-        time: '08:30',
-        title: 'Electricity payment',
-        detail: '£84.20 due tomorrow',
-        dotColor: HouselyPalette.coral,
-      ),
-      Divider(height: 1, indent: 72),
-      _TodayRow(
-        time: '17:00',
-        title: 'Deposit photos',
-        detail: 'Living room and kitchen',
-        dotColor: HouselyPalette.violet,
-      ),
-      Divider(height: 1, indent: 72),
-      _TodayRow(
-        time: '19:30',
-        title: 'Household check-in',
-        detail: 'Alex, Sam and you',
-        dotColor: HouselyPalette.mint,
-      ),
-    ],
-  );
-}
-
-class _TodayRow extends StatelessWidget {
-  const _TodayRow({
-    required this.time,
-    required this.title,
-    required this.detail,
-    required this.dotColor,
-  });
-
-  final String time;
-  final String title;
-  final String detail;
-  final Color dotColor;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 11),
-    child: Row(
-      children: [
-        SizedBox(
-          width: 46,
-          child: Text(time, style: Theme.of(context).textTheme.labelMedium),
-        ),
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 1),
-              Text(detail, style: Theme.of(context).textTheme.bodyMedium),
-            ],
-          ),
-        ),
-        const Icon(Icons.chevron_right_rounded, size: 22),
-      ],
-    ),
-  );
-}
-
-class _HomeSnapshotGrid extends StatelessWidget {
-  const _HomeSnapshotGrid();
-
-  @override
-  Widget build(BuildContext context) => GridView.count(
-    shrinkWrap: true,
-    physics: NeverScrollableScrollPhysics(),
-    crossAxisCount: 2,
-    crossAxisSpacing: 8,
-    mainAxisSpacing: 8,
-    childAspectRatio: 1.45,
-    children: const [
-      _SnapshotTile(
-        value: '£428',
-        label: 'Shared spending',
-        detail: '£36 less than July',
-        icon: Icons.pie_chart_outline_rounded,
-        background: HouselyPalette.violetSoft,
-        foreground: HouselyPalette.violet,
-      ),
-      _SnapshotTile(
-        value: '25',
-        label: 'Home records',
-        detail: '6 documents · 19 items',
-        icon: Icons.folder_copy_outlined,
-        background: HouselyPalette.apricot,
-        foreground: HouselyPalette.coral,
-      ),
-      _SnapshotTile(
-        value: '3',
-        label: 'Members',
-        detail: 'All active',
-        icon: Icons.people_outline_rounded,
-        background: HouselyPalette.mintSoft,
-        foreground: HouselyPalette.mint,
-      ),
-      _SnapshotTile(
-        value: '2',
-        label: 'Upcoming',
-        detail: 'This week',
-        icon: Icons.event_note_outlined,
-        background: HouselyPalette.lilacSoft,
-        foreground: HouselyPalette.lilac,
-      ),
-    ],
-  );
-}
-
-class _SnapshotTile extends StatelessWidget {
-  const _SnapshotTile({
-    required this.value,
-    required this.label,
-    required this.detail,
-    required this.icon,
-    required this.background,
-    required this.foreground,
-  });
-
-  final String value;
-  final String label;
-  final String detail;
-  final IconData icon;
-  final Color background;
-  final Color foreground;
+class _TonalCard extends StatelessWidget {
+  const _TonalCard({required this.color, required this.child});
+  final Color color;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
+    padding: const EdgeInsets.all(HouselySpace.xl),
     decoration: BoxDecoration(
-      color: background,
-      borderRadius: BorderRadius.circular(15),
+      color: color,
+      borderRadius: BorderRadius.circular(HouselyRadius.feature),
+      border: Border.all(color: HouselyPalette.divider),
     ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Icon(icon, color: foreground, size: 22),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(value, style: Theme.of(context).textTheme.titleLarge),
-            Text(label, style: Theme.of(context).textTheme.labelMedium),
-            Text(detail, style: Theme.of(context).textTheme.bodyMedium),
-          ],
-        ),
-      ],
-    ),
+    child: child,
   );
 }
 
-class _ActivityCard extends StatelessWidget {
-  const _ActivityCard();
+class _IconTile extends StatelessWidget {
+  const _IconTile({required this.icon, required this.color});
+  final IconData icon;
+  final Color color;
 
   @override
-  Widget build(BuildContext context) => const HouselyGroupedList(
-    children: [
-      HouselyRecordRow(
-        title: 'Sam uploaded a receipt',
-        subtitle: 'Weekly shop · 24 minutes ago',
-        icon: Icons.receipt_long_outlined,
-      ),
-      HouselyRecordRow(
-        title: 'Alex updated the sofa',
-        subtitle: 'Ownership changed to 50% yours',
-        icon: Icons.chair_outlined,
-      ),
-      HouselyRecordRow(
-        title: 'Deposit evidence saved',
-        subtitle: 'Bedroom · Yesterday',
-        icon: Icons.verified_outlined,
-      ),
-    ],
+  Widget build(BuildContext context) => Container(
+    width: 42,
+    height: 42,
+    decoration: BoxDecoration(color: HouselyPalette.surface.withValues(alpha: .72), borderRadius: BorderRadius.circular(HouselyRadius.control)),
+    child: Icon(icon, color: color, size: HouselySize.icon),
+  );
+}
+
+class _SmallFeature extends StatelessWidget {
+  const _SmallFeature({required this.icon, required this.title, required this.detail, required this.color});
+  final IconData icon;
+  final String title;
+  final String detail;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => _TonalCard(
+    color: color,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon),
+        const SizedBox(height: HouselySpace.md),
+        Text(title, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: HouselySpace.xxs),
+        Text(detail, style: Theme.of(context).textTheme.bodyMedium),
+      ],
+    ),
   );
 }
 
 class _AddMenu extends StatelessWidget {
-  const _AddMenu({required this.open, required this.onToggle});
-
+  const _AddMenu({required this.open, required this.admin, required this.onToggle});
   final bool open;
+  final bool admin;
   final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
-    final actions = [
-      (
-        'Expense',
-        Icons.add_rounded,
-        HouselyPalette.coralSoft,
-        HouselyPalette.coral,
-        '/add-expense',
-      ),
-      (
-        'Document',
-        Icons.upload_file_outlined,
-        HouselyPalette.violetSoft,
-        HouselyPalette.violet,
-        '/upload-document',
-      ),
-      (
-        'Belonging',
-        Icons.chair_outlined,
-        HouselyPalette.apricot,
-        HouselyPalette.textPrimary,
-        '/add-item',
-      ),
-      (
-        'Person',
-        Icons.person_outline_rounded,
-        HouselyPalette.lilacSoft,
-        HouselyPalette.lilac,
-        '/household',
-      ),
+    final actions = <(String, IconData, String)>[
+      ('Expense', Icons.receipt_long_outlined, '/add-expense'),
+      ('Document', Icons.upload_file_outlined, '/upload-document'),
+      ('Belonging', Icons.chair_outlined, '/add-item'),
+      if (admin) ('Person', Icons.person_outline_rounded, '/household'),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -756,93 +629,120 @@ class _AddMenu extends StatelessWidget {
                   key: const ValueKey('open'),
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    for (final action in actions) ...[
-                      _AddAction(
-                        label: action.$1,
-                        icon: action.$2,
-                        background: action.$3,
-                        foreground: action.$4,
-                        onTap: () => context.push(action.$5),
+                    for (final action in actions)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: HouselySpace.xs),
+                        child: Semantics(
+                          button: true,
+                          label: 'Add ${action.$1}',
+                          child: Material(
+                            color: HouselyPalette.surface,
+                            borderRadius: BorderRadius.circular(HouselyRadius.pill),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(HouselyRadius.pill),
+                              onTap: () => context.push(action.$3),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: HouselySpace.md, vertical: HouselySpace.sm),
+                                child: Row(mainAxisSize: MainAxisSize.min, children: [Text(action.$1), const SizedBox(width: HouselySpace.xs), Icon(action.$2, size: 20)]),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 9),
-                    ],
                   ],
                 )
               : const SizedBox.shrink(key: ValueKey('closed')),
         ),
         FloatingActionButton(
+          tooltip: open ? 'Close add menu' : 'Add',
           onPressed: onToggle,
-          backgroundColor: HouselyPalette.violet,
-          foregroundColor: HouselyPalette.onAccent,
-          elevation: 2,
-          shape: const CircleBorder(),
-          child: AnimatedSwitcher(
-            duration: HouselyMotion.standard,
-            child: open
-                ? const Icon(
-                    Icons.close_rounded,
-                    key: ValueKey('close-add-menu'),
-                    size: 30,
-                  )
-                : const Icon(
-                    Icons.add_rounded,
-                    key: ValueKey('open-add-menu'),
-                    size: 30,
-                  ),
-          ),
+          child: AnimatedRotation(duration: HouselyMotion.standard, turns: open ? .125 : 0, child: Icon(open ? Icons.close_rounded : Icons.add_rounded)),
         ),
       ],
     );
   }
 }
 
-class _AddAction extends StatelessWidget {
-  const _AddAction({
-    required this.label,
-    required this.icon,
-    required this.background,
-    required this.foreground,
-    required this.onTap,
+class _HomeModel {
+  const _HomeModel({
+    required this.scenario,
+    required this.headerDetail,
+    required this.admin,
+    required this.readOnly,
+    required this.showGreeting,
+    required this.showHousehold,
+    required this.moneyDetail,
+    this.priority,
+    this.summary,
+    this.attention = const [],
   });
 
-  final String label;
-  final IconData icon;
-  final Color background;
-  final Color foreground;
-  final VoidCallback onTap;
+  final HomeScenario scenario;
+  final String headerDetail;
+  final bool admin;
+  final bool readOnly;
+  final bool showGreeting;
+  final bool showHousehold;
+  final String moneyDetail;
+  final _Priority? priority;
+  final _Summary? summary;
+  final List<AttentionItem> attention;
 
-  @override
-  Widget build(BuildContext context) => Material(
-    color: background,
-    elevation: 2,
-    shadowColor: HouselyPalette.scrim,
-    borderRadius: BorderRadius.circular(14),
-    clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: onTap,
-      child: SizedBox(
-        width: 184,
-        height: 48,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Row(
-            children: [
-              Icon(icon, color: foreground, size: 23),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: HouselyPalette.textPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
+  factory _HomeModel.forScenario(HomeScenario scenario) {
+    const householdSummary = _Summary('August at Home', '£1,485.00', 'household commitments', '£1,024.65 recorded', '£460.35 remaining', 'Next · Council tax £165 · 20 Aug', .69);
+    const memberSummary = _Summary('Your August', '£425.00', 'your rent share of £850', '£212.50 recorded', '£212.50 left', 'Next · Rent share · 20 Aug', .5);
+    final memberPending = AttentionItem('member', 'Alex has not joined yet', 'Named on tenancy · Not joined', '/household');
+    final billReview = AttentionItem('bill', 'Energy bill needs review', 'Household · Action required', '/expense-detail');
+
+    return switch (scenario) {
+      HomeScenario.noHome => const _HomeModel(scenario: HomeScenario.noHome, headerDetail: 'No active Home', admin: false, readOnly: true, showGreeting: true, showHousehold: false, moneyDetail: 'No shared records'),
+      HomeScenario.newAdmin => _HomeModel(scenario: scenario, headerDetail: '1 person · Setting up', admin: true, readOnly: false, showGreeting: true, showHousehold: true, moneyDetail: 'Add commitments', priority: const _Priority.setupAdmin()),
+      HomeScenario.newMember => _HomeModel(scenario: scenario, headerDetail: '3 people · Just joined', admin: false, readOnly: false, showGreeting: true, showHousehold: true, moneyDetail: 'Confirm your share', priority: const _Priority.newMember()),
+      HomeScenario.partialAdmin => _HomeModel(scenario: scenario, headerDetail: '3 people · At home', admin: true, readOnly: false, showGreeting: false, showHousehold: true, moneyDetail: '£460.35 remaining', priority: const _Priority.partialSetup(), summary: householdSummary, attention: [memberPending]),
+      HomeScenario.activeAdmin => _HomeModel(scenario: scenario, headerDetail: '3 people · At home', admin: true, readOnly: false, showGreeting: false, showHousehold: false, moneyDetail: '£460.35 remaining', summary: householdSummary),
+      HomeScenario.activeMember => _HomeModel(scenario: scenario, headerDetail: '3 people · At home', admin: false, readOnly: false, showGreeting: false, showHousehold: false, moneyDetail: '£212.50 left', summary: memberSummary),
+      HomeScenario.allGoodMember => _HomeModel(scenario: scenario, headerDetail: '3 people · At home', admin: false, readOnly: false, showGreeting: true, showHousehold: false, moneyDetail: 'Up to date', priority: const _Priority.allGood(), summary: const _Summary('Your August', '£425.00', 'your rent share', '£425 recorded', 'Nothing left', 'Next · Council tax · 1 September', 1)),
+      HomeScenario.rentDue => _HomeModel(scenario: scenario, headerDetail: '3 people · At home', admin: false, readOnly: false, showGreeting: false, showHousehold: false, moneyDetail: '£425 due soon', priority: const _Priority.rentDue(), summary: memberSummary),
+      HomeScenario.overdue => _HomeModel(scenario: scenario, headerDetail: '3 people · At home', admin: false, readOnly: false, showGreeting: false, showHousehold: false, moneyDetail: '£212.50 overdue', priority: const _Priority.overdue(), summary: memberSummary),
+      HomeScenario.householdAttention => _HomeModel(scenario: scenario, headerDetail: '3 people · At home', admin: true, readOnly: false, showGreeting: false, showHousehold: true, moneyDetail: '£460.35 remaining', summary: householdSummary, attention: [memberPending, billReview]),
+      HomeScenario.guestStay => _HomeModel(scenario: scenario, headerDetail: 'Guest stay · Until 10 Sep', admin: false, readOnly: false, showGreeting: true, showHousehold: false, moneyDetail: '£60 contribution', priority: const _Priority.guest(), summary: const _Summary('Your contributions', '£120.00', 'agreed for this stay', '£60 recorded', '£60 remaining', 'Stay ends · 10 September', .5)),
+      HomeScenario.movingOut => _HomeModel(scenario: scenario, headerDetail: 'Moving out · 30 Sep', admin: false, readOnly: false, showGreeting: false, showHousehold: true, moneyDetail: 'Review final balance', priority: const _Priority.movingOut(), summary: memberSummary),
+      HomeScenario.archived => _HomeModel(scenario: scenario, headerDetail: 'Left 30 September 2026', admin: false, readOnly: true, showGreeting: false, showHousehold: false, moneyDetail: 'Historical records', priority: const _Priority.archived(), summary: null),
+    };
+  }
+}
+
+class _Priority {
+  const _Priority(this.eyebrow, this.title, this.detail, this.action, this.icon, this.color, this.foreground, {this.route, this.progress, this.steps = const []});
+  const _Priority.setupAdmin() : this('Home setup', 'Make George Street Flat ready', 'Complete the essentials once. You can refine everything else later.', 'Continue setup', Icons.home_outlined, HouselyPalette.violetSoft, HouselyPalette.violet, route: '/create-home', progress: '1/4 complete', steps: const [('Home created', true), ('Add your rent', false), ('Add recurring payments', false), ('Protect your move-in', false)]);
+  const _Priority.newMember() : this('Welcome home', 'Set up your part', 'Confirm only what belongs to you. Household setup stays with the Home admin.', 'Confirm your rent share', Icons.waving_hand_outlined, HouselyPalette.mintSoft, HouselyPalette.mint, route: '/split', steps: const [('Home membership confirmed', true), ('Confirm your rent share', false), ('Review shared commitments', false)]);
+  const _Priority.partialSetup() : this('Home setup', 'One important step remains', 'Protect your move-in with a dated, locked evidence record.', 'Protect your move-in', Icons.photo_camera_outlined, HouselyPalette.violetSoft, HouselyPalette.violet, route: '/deposit-guard', progress: '3/4 complete');
+  const _Priority.allGood() : this('All up to date', 'You’re sorted for August', 'Your recorded rent share and contributions are complete.', 'View your activity', Icons.check_circle_outline_rounded, HouselyPalette.mintSoft, HouselyPalette.mint, route: '/split');
+  const _Priority.rentDue() : this('Due soon', 'Your rent share is due in 3 days', '£425.00 is due on 20 August. This is recorded information, not bank verification.', 'Review rent', Icons.calendar_month_outlined, HouselyPalette.apricot, HouselyPalette.amber, route: '/split');
+  const _Priority.overdue() : this('Needs attention', '£212.50 of your rent share is overdue', 'It was due on 20 August. Review the record before marking anything as paid.', 'Review payment', Icons.error_outline_rounded, HouselyPalette.coralSoft, HouselyPalette.coral, route: '/split');
+  const _Priority.guest() : this('Guest stay active', 'Your stay ends on 10 September', 'See your agreed contributions and the Home information shared with you.', 'View stay details', Icons.event_note_outlined, HouselyPalette.lilacSoft, HouselyPalette.lilac, route: '/household');
+  const _Priority.movingOut() : this('Moving out', 'Complete your move-out by 30 September', 'Review balances, belongings and locked move-in evidence before you leave.', 'Continue move-out', Icons.move_up_rounded, HouselyPalette.apricot, HouselyPalette.amber, route: '/change-impact', progress: '4/7 complete');
+  const _Priority.archived() : this('Former Home', 'You left George Street Flat', 'Your permitted records remain available as a read-only history.', 'View personal records', Icons.inventory_2_outlined, HouselyPalette.surfaceRaised, HouselyPalette.textSecondary, route: '/vault');
+
+  final String eyebrow;
+  final String title;
+  final String detail;
+  final String action;
+  final IconData icon;
+  final Color color;
+  final Color foreground;
+  final String? route;
+  final String? progress;
+  final List<(String, bool)> steps;
+}
+
+class _Summary {
+  const _Summary(this.sectionTitle, this.amount, this.label, this.left, this.right, this.next, this.value);
+  final String sectionTitle;
+  final String amount;
+  final String label;
+  final String left;
+  final String right;
+  final String next;
+  final double value;
 }

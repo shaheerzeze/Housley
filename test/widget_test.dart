@@ -943,6 +943,60 @@ void main() {
     });
   });
 
+  group('Adaptive Home variation regression', () {
+    testWidgets('State lab previews the member Home variation', (tester) async {
+      await tester.pumpWidget(const HouselyApp(initialLocation: '/state-lab'));
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Active member'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Active member'));
+      await tester.scrollUntilVisible(
+        find.text('Preview on Home'),
+        500,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Preview on Home'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Your August'), findsOneWidget);
+      expect(find.text('your rent share of £850'), findsOneWidget);
+      expect(find.text('Manage'), findsNothing);
+    });
+
+    testWidgets('household attention opens the relevant member', (tester) async {
+      await tester.pumpWidget(const HouselyApp(initialLocation: '/state-lab'));
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Household attention'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Household attention'));
+      await tester.scrollUntilVisible(
+        find.text('Preview on Home'),
+        500,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Preview on Home'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Home status'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Alex has not joined yet'),
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Alex has not joined yet'));
+      await tester.pumpAndSettle();
+      expect(find.text('Household'), findsWidgets);
+    });
+  });
+
   group('Join Home code and QR regression', () {
     testWidgets('Join a Home opens code and QR options', (tester) async {
       await tester.pumpWidget(

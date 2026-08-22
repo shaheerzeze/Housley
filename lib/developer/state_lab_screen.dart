@@ -5,15 +5,17 @@ import '../data/housely_repository.dart';
 import '../design_system/components/components.dart';
 import '../design_system/theme/housely_tokens.dart';
 import '../features/shared/feature_scaffold.dart';
+import '../features/home/home_state.dart';
 
 class StateLabScreen extends StatelessWidget {
-  const StateLabScreen({required this.repository, super.key});
+  const StateLabScreen({required this.repository, required this.homeState, super.key});
 
   final HouselyRepository repository;
+  final HomeFeatureState homeState;
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: repository,
+    listenable: Listenable.merge([repository, homeState]),
     builder: (context, _) => FeatureScaffold(
       title: 'State lab',
       subtitle: 'Phase 10 · Mock data  /  Phase 11 · Required states',
@@ -27,8 +29,27 @@ class StateLabScreen extends StatelessWidget {
                 'These choices only change this session. No household data is sent or deleted.',
           ),
           const SizedBox(height: HouselySpace.xl),
+          Text('Home variation', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: HouselySpace.xs),
           Text(
-            'Screen scenario',
+            'Preview the real adaptive Home for each role, lifecycle and priority.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: HouselySpace.md),
+          for (final scenario in HomeScenario.values) ...[
+            _HomeScenarioTile(
+              scenario: scenario,
+              selected: homeState.scenario == scenario,
+              onTap: () {
+                repository.selectScenario(DemoScenario.populated);
+                homeState.selectScenario(scenario);
+              },
+            ),
+            const SizedBox(height: HouselySpace.sm),
+          ],
+          const SizedBox(height: HouselySpace.xl),
+          Text(
+            'System state',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: HouselySpace.xs),
@@ -49,15 +70,61 @@ class StateLabScreen extends StatelessWidget {
           HouselyButton(
             label: 'Preview on Home',
             leadingIcon: Icons.home_outlined,
-            onPressed: () => context.go('/home'),
+            onPressed: () => context.go('/home-preview'),
           ),
           const SizedBox(height: HouselySpace.sm),
           HouselyButton(
             label: 'Reset prototype data',
             style: HouselyButtonStyle.secondary,
-            onPressed: repository.reset,
+            onPressed: () {
+              repository.reset();
+              homeState.selectScenario(HomeScenario.activeAdmin);
+            },
           ),
         ],
+      ),
+    ),
+  );
+}
+
+class _HomeScenarioTile extends StatelessWidget {
+  const _HomeScenarioTile({required this.scenario, required this.selected, required this.onTap});
+  final HomeScenario scenario;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    selected: selected,
+    child: Material(
+      color: selected ? HouselyPalette.violetSoft : HouselyPalette.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(HouselyRadius.group),
+        side: BorderSide(color: selected ? HouselyPalette.violet : HouselyPalette.divider),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(HouselySpace.md),
+          child: Row(
+            children: [
+              Icon(selected ? Icons.check_circle_rounded : Icons.circle_outlined, color: selected ? HouselyPalette.violet : HouselyPalette.textSecondary),
+              const SizedBox(width: HouselySpace.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(scenario.label, style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(scenario.description, style: Theme.of(context).textTheme.bodyMedium),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     ),
   );

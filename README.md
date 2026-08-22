@@ -1,17 +1,43 @@
-# housely
+# Housely
 
-A new Flutter project.
+Housely is a calm, connected operating system for shared homes. This Flutter
+repository currently uses local prototype data so the complete interface and
+interaction model can be validated before Supabase is connected.
 
-## Getting Started
+## Run
 
-This project is a starting point for a Flutter application.
+```sh
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Quality checks
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```sh
+flutter analyze
+flutter test
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Previewing Home variations
+
+Open **You → Developer tools → State lab**. The Home variation controls cover:
+
+- no active Home;
+- new Home admin;
+- first Home after joining;
+- partially and fully set-up admins;
+- active and all-good members;
+- rent due and overdue priorities;
+- household attention;
+- guest stay;
+- moving out; and
+- archived Home.
+
+System-state controls can be layered onto the selected variation to inspect
+loading, empty, offline, service-error, permission-loss, disabled, success,
+large-text and long-content behaviour. All controls are local to the running
+session.
+
+The Home UI depends on `HomeFeatureState`, not a backend SDK. A future Supabase
+repository can therefore replace the mock data source without redesigning the
+screens.

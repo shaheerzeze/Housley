@@ -329,7 +329,10 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
       ),
       GoRoute(
         path: '/state-lab',
-        builder: (context, state) => StateLabScreen(repository: repository),
+        builder: (context, state) => StateLabScreen(
+          repository: repository,
+          homeState: homeState,
+        ),
       ),
       GoRoute(
         path: '/accessibility-review',
@@ -348,6 +351,14 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
                 path: '/home',
                 builder: (context, state) =>
                     HomeEntryScreen(draft: draft, setupState: homeSetupState),
+              ),
+              GoRoute(
+                path: '/home-preview',
+                builder: (context, state) => ScenarioGate(
+                  repository: repository,
+                  section: 'Home',
+                  child: HomeCommandScreen(state: homeState),
+                ),
               ),
             ],
           ),
