@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/housely_repository.dart';
+import '../data/mvp_app_state.dart';
 import '../developer/accessibility_review_screen.dart';
 import '../developer/scenario_gate.dart';
 import '../developer/state_lab_screen.dart';
@@ -10,7 +11,6 @@ import '../features/access/access_screens.dart';
 import '../features/access/join_home_screens.dart';
 import '../features/access/join_home_state.dart';
 import '../features/access/streamlined_create_home_flow.dart';
-import '../features/home/home_entry_screen.dart';
 import '../features/home/home_screens.dart';
 import '../features/home/home_setup_state.dart';
 import '../features/home/home_state.dart';
@@ -18,11 +18,8 @@ import '../features/mvp/mvp_catalog.dart';
 import '../features/mvp/mvp_screens.dart';
 import '../features/shell/app_shell.dart';
 import '../features/split/split_screens.dart';
-import '../features/split/split_state.dart';
 import '../features/stuff/stuff_screens.dart';
-import '../features/stuff/stuff_state.dart';
 import '../features/vault/vault_screens.dart';
-import '../features/vault/vault_state.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _homeNavigatorKey = GlobalKey<NavigatorState>();
@@ -34,17 +31,29 @@ final _youNavigatorKey = GlobalKey<NavigatorState>();
 GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
   final draft = AccessDraft();
   final joinHomeState = JoinHomeState();
-  final homeState = HomeFeatureState();
+  final appState = MvpAppState();
+  final homeState = appState.home;
   final homeSetupState = HomeSetupState();
-  final splitState = SplitFeatureState();
-  final vaultState = VaultFeatureState();
-  final stuffState = StuffFeatureState();
+  final splitState = appState.split;
+  final vaultState = appState.vault;
+  final stuffState = appState.stuff;
   final repository = MockHouselyRepository();
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: initialLocation,
+    refreshListenable: appState,
+    redirect: (context, state) {
+      if (state.matchedLocation == '/access-restricted') return null;
+      return appState.canAccess(state.matchedLocation)
+          ? null
+          : '/access-restricted';
+    },
     routes: [
+      GoRoute(
+        path: '/access-restricted',
+        builder: (context, state) => const RestrictedAccessScreen(),
+      ),
       GoRoute(
         path: '/welcome',
         builder: (context, state) => const WelcomeScreen(),
@@ -149,16 +158,30 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
       // Progressive first-Home setup. These are optional, non-blocking routes.
       GoRoute(
         path: '/setup-rent',
-        builder: (context, state) => AddRentSetupScreen(state: homeSetupState),
+        builder: (context, state) => AddRentSetupScreen(
+          state: homeSetupState,
+          onSaved: () => homeState.selectScenario(HomeScenario.partialAdmin),
+        ),
       ),
       GoRoute(
         path: '/setup-recurring',
-        builder: (context, state) =>
-            AddRecurringSetupScreen(state: homeSetupState),
+        builder: (context, state) => AddRecurringSetupScreen(
+          state: homeSetupState,
+          onSaved: () => homeState.selectScenario(HomeScenario.partialAdmin),
+        ),
       ),
       GoRoute(
         path: '/setup-move-in',
-        builder: (context, state) => MoveInSetupScreen(state: homeSetupState),
+        builder: (context, state) => MoveInSetupScreen(
+          state: homeSetupState,
+          onSaved: () => homeState.selectScenario(
+            homeSetupState.isComplete(
+              tenancyComplete: draft.tenancySetupComplete,
+            )
+                ? HomeScenario.activeAdmin
+                : HomeScenario.partialAdmin,
+          ),
+        ),
       ),
 
       // LEGACY / POST-ONBOARDING HOUSEHOLD MANAGEMENT.
@@ -334,6 +357,7 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         builder: (context, state) => StateLabScreen(
           repository: repository,
           homeState: homeState,
+          appState: appState,
         ),
       ),
       GoRoute(
@@ -348,7 +372,11 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
       ...mvpScreenCatalog.map(
         (screen) => GoRoute(
           path: screen.path,
-          builder: (context, state) => MvpScreen(spec: screen),
+          builder: (context, state) => MvpAccessGate(
+            appState: appState,
+            path: screen.path,
+            child: MvpScreen(spec: screen, appState: appState),
+          ),
         ),
       ),
 
@@ -361,16 +389,27 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
             routes: [
               GoRoute(
                 path: '/home',
-                builder: (context, state) =>
-                    HomeEntryScreen(draft: draft, setupState: homeSetupState),
+                builder: (context, state) {
+                  if (draft.homeName.trim().isNotEmpty) {
+                    final completed = homeSetupState.completedSteps(
+                      tenancyComplete: draft.tenancySetupComplete,
+                    );
+                    homeState.selectScenario(
+                      completed >= 4
+                          ? HomeScenario.activeAdmin
+                          : completed > 1
+                          ? HomeScenario.partialAdmin
+                          : draft.homeSetupAdmin
+                          ? HomeScenario.newAdmin
+                          : HomeScenario.newMember,
+                    );
+                  }
+                  return HomeCommandScreen(state: homeState);
+                },
               ),
               GoRoute(
                 path: '/home-preview',
-                builder: (context, state) => ScenarioGate(
-                  repository: repository,
-                  section: 'Home',
-                  child: HomeCommandScreen(state: homeState),
-                ),
+                redirect: (context, state) => '/home',
               ),
             ],
           ),

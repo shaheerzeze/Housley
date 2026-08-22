@@ -3,8 +3,72 @@ import 'package:go_router/go_router.dart';
 
 import '../../design_system/components/components.dart';
 import '../../design_system/theme/housely_tokens.dart';
+import '../../data/mvp_app_state.dart';
 import '../shared/feature_scaffold.dart';
 import 'mvp_catalog.dart';
+
+class MvpAccessGate extends StatelessWidget {
+  const MvpAccessGate({required this.appState, required this.path, required this.child, super.key});
+  final MvpAppState appState;
+  final String path;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: appState,
+    builder: (context, _) {
+      if (!appState.online && path != '/offline') {
+        return FeatureScaffold(
+          title: 'Offline',
+          subtitle: 'Saved information remains available while Housely reconnects.',
+          onBack: () => context.go('/home'),
+          child: HouselyMessageState(
+            title: 'You are offline',
+            message: 'This action needs a connection. No entered household information has been lost.',
+            kind: HouselyMessageKind.offline,
+            actionLabel: 'Try again',
+            onAction: () => appState.setOnline(true),
+          ),
+        );
+      }
+      if (appState.canAccess(path)) return child;
+      return FeatureScaffold(
+        title: 'Access restricted',
+        subtitle: 'This action is not available for your current household role.',
+        onBack: () => context.canPop() ? context.pop() : context.go('/home'),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const HouselyMessageState(
+            title: 'You do not have access',
+            message: 'A Home admin can complete this action. Your private records and permitted household areas are still available.',
+            kind: HouselyMessageKind.error,
+          ),
+          const SizedBox(height: HouselySpace.md),
+          HouselyButton(label: 'Return Home', onPressed: () => context.go('/home')),
+        ]),
+      );
+    },
+  );
+}
+
+class RestrictedAccessScreen extends StatelessWidget {
+  const RestrictedAccessScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => FeatureScaffold(
+    title: 'Access restricted',
+    subtitle: 'Your current household role does not include this action.',
+    onBack: () => context.go('/home'),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const HouselyMessageState(
+        title: 'This belongs to a Home admin',
+        message: 'You can continue using your personal and explicitly shared areas. Ask a Home admin if this household record needs changing.',
+        kind: HouselyMessageKind.error,
+      ),
+      const SizedBox(height: HouselySpace.md),
+      HouselyButton(label: 'Return Home', onPressed: () => context.go('/home')),
+    ]),
+  );
+}
 
 class MvpCatalogScreen extends StatelessWidget {
   const MvpCatalogScreen({super.key});
@@ -38,8 +102,9 @@ class MvpCatalogScreen extends StatelessWidget {
 }
 
 class MvpScreen extends StatefulWidget {
-  const MvpScreen({required this.spec, super.key});
+  const MvpScreen({required this.spec, required this.appState, super.key});
   final MvpScreenSpec spec;
+  final MvpAppState appState;
 
   @override
   State<MvpScreen> createState() => _MvpScreenState();
@@ -48,6 +113,16 @@ class MvpScreen extends StatefulWidget {
 class _MvpScreenState extends State<MvpScreen> {
   final _controller = TextEditingController();
   bool _busy = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.spec.items.isNotEmpty) {
+      final parts = widget.spec.items.first.split('|');
+      if (parts.length > 1) _controller.text = parts.sublist(1).join(' · ');
+    }
+  }
 
   @override
   void dispose() {
@@ -55,8 +130,29 @@ class _MvpScreenState extends State<MvpScreen> {
     super.dispose();
   }
 
-  void _go(String? path) {
+  Future<void> _go(String? path) async {
     if (path == null) return;
+    if (widget.spec.kind == MvpScreenKind.form && _controller.text.trim().isEmpty) {
+      setState(() => _error = 'Complete the required field before continuing.');
+      return;
+    }
+    if (widget.spec.path == '/move-out-checklist' && !widget.appState.moveOutReady) {
+      setState(() => _error = 'Complete the required move-out checks before comparing evidence.');
+      return;
+    }
+    if (widget.spec.kind == MvpScreenKind.warning && path == widget.spec.primaryPath) {
+      final confirmed = await showHouselyConfirmation(
+        context,
+        title: widget.spec.title,
+        message: widget.spec.subtitle,
+        confirmLabel: widget.spec.primaryLabel ?? 'Confirm',
+        destructive: widget.spec.path == '/delete-account' ||
+            widget.spec.path == '/end-stay' ||
+            widget.spec.path == '/transfer-review',
+      );
+      if (confirmed != true || !mounted) return;
+    }
+    _applyAction();
     setState(() => _busy = true);
     Future<void>.delayed(const Duration(milliseconds: 180), () {
       if (!mounted) return;
@@ -64,10 +160,62 @@ class _MvpScreenState extends State<MvpScreen> {
     });
   }
 
+  void _applyAction() {
+    final state = widget.appState;
+    switch (widget.spec.path) {
+      case '/review-invitation':
+        state.invite('Alex Morgan');
+        break;
+      case '/extend-stay':
+        state.extendGuest();
+        break;
+      case '/end-stay':
+        state.endGuest();
+        break;
+      case '/leave-home':
+        state.selectLifecycle(HomeLifecycle.movingOut);
+        break;
+      case '/task-detail':
+        state.completeTask();
+        break;
+      case '/approve-change':
+        state.approveChange();
+        break;
+      case '/move-out-review':
+        state.finishMoveOut();
+        break;
+      case '/recurring-payment-detail':
+        state.recordCouncilTax();
+        break;
+      case '/create-split-group':
+        state.createPrivateGroup(_controller.text);
+        break;
+      case '/transfer-review':
+        state.setOutcome('Ownership transferred', 'The ownership history has been updated.');
+        break;
+      case '/edit-profile':
+        state.setOutcome('Profile updated', 'Your contact information has been saved.');
+        break;
+      case '/member-permissions':
+        state.setOutcome('Member access updated', 'The new access rules are now active.');
+        break;
+      case '/notification-settings':
+        state.setOutcome('Notification preferences saved', 'You will only receive the updates you selected.');
+        break;
+      case '/accessibility-settings':
+        state.setOutcome('Accessibility settings saved', 'Your display and motion preferences are active.');
+        break;
+      default:
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final spec = widget.spec;
-    return FeatureScaffold(
+    return ListenableBuilder(
+      listenable: widget.appState,
+      builder: (context, _) => FeatureScaffold(
       title: spec.title,
       subtitle: spec.subtitle,
       onBack: () => context.canPop() ? context.pop() : context.go('/home-preview'),
@@ -81,13 +229,31 @@ class _MvpScreenState extends State<MvpScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Hero(spec: spec),
+          if (spec.kind == MvpScreenKind.overview ||
+              spec.kind == MvpScreenKind.success ||
+              spec.kind == MvpScreenKind.warning ||
+              spec.kind == MvpScreenKind.privacy)
+            _Hero(spec: spec)
+          else
+            _CompactContext(spec: spec),
+          if (_error != null) ...[
+            const SizedBox(height: HouselySpace.md),
+            HouselyValidationSummary(errors: [_error!]),
+          ],
+          if (spec.path == '/settings-saved') ...[
+            const SizedBox(height: HouselySpace.xxl),
+            HouselyMessageState(
+              title: widget.appState.successTitle,
+              message: widget.appState.successMessage,
+              kind: HouselyMessageKind.success,
+            ),
+          ],
           if (spec.items.isNotEmpty) ...[
             const SizedBox(height: HouselySpace.xxl),
             if (spec.kind == MvpScreenKind.form)
               _FormContent(spec: spec, controller: _controller, onChanged: () => setState(() {}))
             else
-              _RecordContent(spec: spec),
+              _RecordContent(spec: spec, appState: widget.appState),
           ],
           if (spec.note != null) ...[
             const SizedBox(height: HouselySpace.md),
@@ -114,6 +280,7 @@ class _MvpScreenState extends State<MvpScreen> {
           ],
         ],
       ),
+    ),
     );
   }
 
@@ -174,24 +341,97 @@ class _Hero extends StatelessWidget {
   };
 }
 
-class _RecordContent extends StatelessWidget {
-  const _RecordContent({required this.spec});
+class _CompactContext extends StatelessWidget {
+  const _CompactContext({required this.spec});
   final MvpScreenSpec spec;
 
   @override
-  Widget build(BuildContext context) => HouselyGroupedList(
-    children: spec.items.map((raw) {
+  Widget build(BuildContext context) => Row(children: [
+    Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: HouselyIconColors.resolve(spec.icon).background,
+        borderRadius: BorderRadius.circular(HouselyRadius.control),
+      ),
+      child: Icon(spec.icon, size: 20, color: HouselyIconColors.resolve(spec.icon).foreground),
+    ),
+    const SizedBox(width: HouselySpace.sm),
+    Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: HouselyPalette.surfaceRaised,
+        borderRadius: BorderRadius.circular(HouselyRadius.pill),
+      ),
+      child: Text(spec.area, style: Theme.of(context).textTheme.labelMedium),
+    ),
+  ]);
+}
+
+class _RecordContent extends StatelessWidget {
+  const _RecordContent({required this.spec, required this.appState});
+  final MvpScreenSpec spec;
+  final MvpAppState appState;
+
+  @override
+  Widget build(BuildContext context) {
+    final records = _records();
+    return HouselyGroupedList(
+    children: records.asMap().entries.map((entry) {
+      final raw = entry.value;
       final parts = raw.split('|');
       return HouselyRecordRow(
         title: parts.first,
         subtitle: parts.length > 1 ? parts.sublist(1).join(' · ') : null,
         icon: _itemIcon(parts.first),
         onTap: spec.kind == MvpScreenKind.list
-            ? () => _showRecord(context, parts.first, parts.length > 1 ? parts.sublist(1).join(' · ') : null)
+            ? () => _openRecord(context, entry.key, parts.first, parts.length > 1 ? parts.sublist(1).join(' · ') : null)
             : null,
       );
     }).toList(),
   );
+  }
+
+  List<String> _records() => switch (spec.path) {
+    '/notifications' => appState.notifications.map((item) => '${item.title}|${item.read ? 'Read' : 'Unread'}').toList(),
+    '/household-overview' => appState.members.map((item) => '${item.name}|${item.relationship} · ${item.status}').toList(),
+    '/tasks' => appState.tasks.map((item) => '${item.title}|${item.assignee} · ${item.complete ? 'Complete' : 'Open'}').toList(),
+    '/changes-overview' => appState.changes.map((item) => '${item.title}|${item.current} → ${item.proposed} · ${item.status}').toList(),
+    '/move-out-checklist' => appState.moveOutSteps.entries.map((item) => '${item.key}|${item.value ? 'Complete' : 'Action needed'}').toList(),
+    '/split-groups' => ['George Street Flat|3 members · Household', ...appState.privateGroups.map((item) => '$item|Private group · Members only')],
+    '/recurring-payments' => [
+      'Rent|£850.00 · Monthly · 1st',
+      'Council tax|£165.00 · ${appState.councilTaxPaid ? 'Paid' : 'Due 20 September'}',
+      'Broadband|£32.00 · Monthly · 24th',
+    ],
+    _ => spec.items,
+  };
+
+  void _openRecord(BuildContext context, int index, String title, String? detail) {
+    final route = switch (spec.path) {
+      '/notifications' => appState.notifications[index].destination,
+      '/household-overview' => index == 3 ? '/temporary-stay' : '/person-detail',
+      '/tasks' => '/task-detail',
+      '/changes-overview' => '/change-detail',
+      '/your-homes' => index == 1 ? '/archived-home' : '/home',
+      '/vault-folders' => index == 3 ? '/locked-evidence' : '/document-viewer',
+      '/app-settings' => index == 0 ? '/notification-settings' : index == 1 ? '/accessibility-settings' : '/privacy-centre',
+      '/invite-person-type' => '/invite-person',
+      '/split-groups' => index == 0 ? '/split' : '/expense-history',
+      '/recurring-payments' => '/recurring-payment-detail',
+      _ => null,
+    };
+    if (spec.path == '/notifications') appState.markNotificationRead(index);
+    if (spec.path == '/move-out-checklist') {
+      appState.setMoveOutStep(title, !(appState.moveOutSteps[title] ?? false));
+      return;
+    }
+    if (route != null) {
+      context.push(route);
+    } else {
+      _showRecord(context, title, detail);
+    }
+  }
 
   void _showRecord(BuildContext context, String title, String? detail) => showModalBottomSheet<void>(
     context: context,

@@ -377,6 +377,11 @@ class MoreMenuScreen extends StatelessWidget {
                 icon: Icons.history_rounded,
                 onTap: () => context.push('/timeline'),
               ),
+              HouselyRecordRow(
+                title: 'Notifications',
+                icon: Icons.notifications_outlined,
+                onTap: () => context.push('/notifications'),
+              ),
             ],
           ),
         ),

@@ -704,9 +704,10 @@ class _AddAction extends StatelessWidget {
 }
 
 class AddRentSetupScreen extends StatefulWidget {
-  const AddRentSetupScreen({required this.state, super.key});
+  const AddRentSetupScreen({required this.state, this.onSaved, super.key});
 
   final HomeSetupState state;
+  final VoidCallback? onSaved;
 
   @override
   State<AddRentSetupScreen> createState() => _AddRentSetupScreenState();
@@ -742,7 +743,8 @@ class _AddRentSetupScreenState extends State<AddRentSetupScreen> {
     final dueDay = int.parse(_dueDay.text);
 
     widget.state.saveRent(amountPence: (amount * 100).round(), dueDay: dueDay);
-    context.pop();
+    widget.onSaved?.call();
+    context.go('/setup-recurring');
   }
 
   @override
@@ -797,9 +799,10 @@ class _AddRentSetupScreenState extends State<AddRentSetupScreen> {
 }
 
 class AddRecurringSetupScreen extends StatefulWidget {
-  const AddRecurringSetupScreen({required this.state, super.key});
+  const AddRecurringSetupScreen({required this.state, this.onSaved, super.key});
 
   final HomeSetupState state;
+  final VoidCallback? onSaved;
 
   @override
   State<AddRecurringSetupScreen> createState() =>
@@ -828,8 +831,9 @@ class _AddRecurringSetupScreenState extends State<AddRecurringSetupScreen> {
       amountPence: (amount * 100).round(),
       frequency: _frequency,
     );
+    widget.onSaved?.call();
 
-    context.pop();
+    context.go('/setup-move-in');
   }
 
   @override
@@ -891,9 +895,10 @@ class _AddRecurringSetupScreenState extends State<AddRecurringSetupScreen> {
 }
 
 class MoveInSetupScreen extends StatelessWidget {
-  const MoveInSetupScreen({required this.state, super.key});
+  const MoveInSetupScreen({required this.state, this.onSaved, super.key});
 
   final HomeSetupState state;
+  final VoidCallback? onSaved;
 
   @override
   Widget build(BuildContext context) => FeatureScaffold(
@@ -905,7 +910,8 @@ class MoveInSetupScreen extends StatelessWidget {
       label: 'Start move-in protection',
       onPressed: () {
         state.markMoveInProtectionStarted();
-        context.pop();
+        onSaved?.call();
+        context.go('/home');
       },
     ),
     child: const Column(

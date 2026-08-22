@@ -709,6 +709,7 @@ class StreamlinedTenancyNameMissingScreen extends StatelessWidget {
           style: HouselyButtonStyle.secondary,
           onPressed: () {
             draft.continueWithoutTenancyVerification();
+            draft.setHomeSetupAdmin(true);
             draft.markTenancySetupComplete();
             context.go('/home');
           },

@@ -50,7 +50,7 @@ class _HomeCommandScreenState extends State<HomeCommandScreen> {
                         Positioned.fill(
                           child: GestureDetector(
                             behavior: HitTestBehavior.opaque,
-                            key: const ValueKey('add-menu-scrim'),
+                            key: const ValueKey('home-add-scrim'),
                             onTap: () => setState(() => addOpen = false),
                             child: const ColoredBox(color: HouselyPalette.scrim),
                           ),
@@ -688,6 +688,7 @@ class _AddMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final actions = <(String, IconData, String)>[
       ('Expense', Icons.receipt_long_outlined, '/add-expense'),
+      ('Recurring payment', Icons.event_repeat_outlined, '/add-recurring-payment'),
       ('Document', Icons.upload_file_outlined, '/upload-document'),
       ('Belonging', Icons.chair_outlined, '/add-item'),
       if (admin) ('Person', Icons.person_outline_rounded, '/invite-person-type'),
@@ -788,14 +789,14 @@ class _HomeModel {
 
 class _Priority {
   const _Priority(this.eyebrow, this.title, this.detail, this.action, this.icon, this.color, this.foreground, {this.route, this.progress, this.steps = const []});
-  const _Priority.setupAdmin() : this('Home setup', 'Make George Street Flat ready', 'Complete the essentials once. You can refine everything else later.', 'Continue setup', Icons.home_outlined, HouselyPalette.violetSoft, HouselyPalette.violet, route: '/create-home', progress: '1/4 complete', steps: const [('Home created', true), ('Add your rent', false), ('Add recurring payments', false), ('Protect your move-in', false)]);
+  const _Priority.setupAdmin() : this('Home setup', 'Make George Street Flat ready', 'Complete the essentials once. You can refine everything else later.', 'Continue setup', Icons.home_outlined, HouselyPalette.violetSoft, HouselyPalette.violet, route: '/setup-rent', progress: '1/4 complete', steps: const [('Tenancy connected', true), ('Add your rent', false), ('Add recurring payments', false), ('Protect your move-in', false)]);
   const _Priority.newMember() : this('Welcome home', 'Set up your part', 'Confirm only what belongs to you. Household setup stays with the Home admin.', 'Confirm your rent share', Icons.waving_hand_outlined, HouselyPalette.mintSoft, HouselyPalette.mint, route: '/split', steps: const [('Home membership confirmed', true), ('Confirm your rent share', false), ('Review shared commitments', false)]);
   const _Priority.partialSetup() : this('Home setup', 'One important step remains', 'Protect your move-in with a dated, locked evidence record.', 'Protect your move-in', Icons.photo_camera_outlined, HouselyPalette.violetSoft, HouselyPalette.violet, route: '/deposit-guard', progress: '3/4 complete');
   const _Priority.allGood() : this('All up to date', 'You’re sorted for August', 'Your recorded rent share and contributions are complete.', 'View your activity', Icons.check_circle_outline_rounded, HouselyPalette.mintSoft, HouselyPalette.mint, route: '/split');
   const _Priority.rentDue() : this('Due soon', 'Your rent share is due in 3 days', '£425.00 is due on 20 August. This is recorded information, not bank verification.', 'Review rent', Icons.calendar_month_outlined, HouselyPalette.apricot, HouselyPalette.amber, route: '/split');
   const _Priority.overdue() : this('Needs attention', '£212.50 of your rent share is overdue', 'It was due on 20 August. Review the record before marking anything as paid.', 'Review payment', Icons.error_outline_rounded, HouselyPalette.coralSoft, HouselyPalette.coral, route: '/split');
-  const _Priority.guest() : this('Guest stay active', 'Your stay ends on 10 September', 'See your agreed contributions and the Home information shared with you.', 'View stay details', Icons.event_note_outlined, HouselyPalette.lilacSoft, HouselyPalette.lilac, route: '/household');
-  const _Priority.movingOut() : this('Moving out', 'Complete your move-out by 30 September', 'Review balances, belongings and locked move-in evidence before you leave.', 'Continue move-out', Icons.move_up_rounded, HouselyPalette.apricot, HouselyPalette.amber, route: '/change-impact', progress: '4/7 complete');
+  const _Priority.guest() : this('Guest stay active', 'Your stay ends on 10 September', 'See your agreed contributions and the Home information shared with you.', 'View stay details', Icons.event_note_outlined, HouselyPalette.lilacSoft, HouselyPalette.lilac, route: '/temporary-stay');
+  const _Priority.movingOut() : this('Moving out', 'Complete your move-out by 30 September', 'Review balances, belongings and locked move-in evidence before you leave.', 'Continue move-out', Icons.move_up_rounded, HouselyPalette.apricot, HouselyPalette.amber, route: '/move-out-overview', progress: '4/7 complete');
   const _Priority.archived() : this('Former Home', 'You left George Street Flat', 'Your permitted records remain available as a read-only history.', 'View personal records', Icons.inventory_2_outlined, HouselyPalette.surfaceRaised, HouselyPalette.textSecondary, route: '/vault');
 
   final String eyebrow;

@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:housely/app/housely_app.dart';
+import 'package:housely/data/mvp_app_state.dart';
 import 'package:housely/design_system/components/buttons.dart';
+import 'package:housely/developer/state_lab_screen.dart';
 import 'package:housely/features/access/access_draft.dart';
 import 'package:housely/features/access/household_member.dart';
+import 'package:housely/features/home/home_state.dart';
+import 'package:housely/features/home/home_setup_state.dart';
 import 'package:housely/features/mvp/mvp_catalog.dart';
 
 Future<void> _finishStreamlinedTenancyProcessing(WidgetTester tester) async {
@@ -51,7 +56,7 @@ Future<void> _claimCreatorAndReachHome(WidgetTester tester) async {
   await tester.tap(confirmButton);
   await tester.pumpAndSettle();
 
-  expect(find.text('Set up your Home'), findsOneWidget);
+  expect(find.text('Make George Street Flat ready'), findsOneWidget);
 }
 
 Future<void> _reachHouseholdManagement(WidgetTester tester) async {
@@ -131,6 +136,95 @@ Future<void> _lookupAlex(WidgetTester tester, {required String phone}) async {
 }
 
 void main() {
+  group('Offline end-to-end domain journeys', () {
+    test('Home setup contains exactly the four agreed milestones', () {
+      final state = HomeSetupState();
+      expect(state.completedSteps(tenancyComplete: true), 1);
+
+      state.saveRent(amountPence: 85000, dueDay: 1);
+      state.addRecurringCost(name: 'Council tax', amountPence: 16500, frequency: 'Monthly');
+      state.markHouseholdOpened();
+      expect(state.completedSteps(tenancyComplete: true), 3);
+
+      state.markMoveInProtectionStarted();
+      expect(state.completedSteps(tenancyComplete: true), 4);
+      expect(state.isComplete(tenancyComplete: true), isTrue);
+    });
+
+    test('admin invitation updates the household record', () {
+      final state = MvpAppState();
+      state.invite('Alex Morgan');
+
+      expect(state.members.singleWhere((member) => member.name == 'Alex Morgan').status, 'Invited · Waiting to join');
+      expect(state.successTitle, 'Invitation sent');
+    });
+
+    test('member and temporary resident cannot access admin actions', () {
+      final state = MvpAppState()..selectRole(HouselyRole.member);
+      expect(state.canAccess('/invite-person'), isFalse);
+      expect(state.canAccess('/propose-change'), isFalse);
+      expect(state.canAccess('/split'), isTrue);
+
+      state.selectRole(HouselyRole.temporaryResident);
+      expect(state.canAccess('/household-overview'), isFalse);
+      expect(state.canAccess('/capture-evidence'), isFalse);
+      expect(state.canAccess('/vault'), isTrue);
+    });
+
+    test('change approval persists in the central state', () {
+      final state = MvpAppState();
+      state.approveChange();
+
+      expect(state.changes.first.status, 'Approved');
+      expect(state.successTitle, 'Approval recorded');
+    });
+
+    test('task completion persists and produces a contextual outcome', () {
+      final state = MvpAppState();
+      state.completeTask();
+
+      expect(state.tasks.first.complete, isTrue);
+      expect(state.successTitle, 'Task completed');
+    });
+
+    test('move-out remains blocked until required checks are complete', () {
+      final state = MvpAppState()..selectLifecycle(HomeLifecycle.movingOut);
+      state.finishMoveOut();
+      expect(state.lifecycle, HomeLifecycle.movingOut);
+
+      for (final step in state.moveOutSteps.keys.toList()) {
+        if (step != 'Compare move-in evidence') state.setMoveOutStep(step, true);
+      }
+      expect(state.moveOutReady, isTrue);
+      state.finishMoveOut();
+      expect(state.lifecycle, HomeLifecycle.archived);
+      expect(state.home.scenario, HomeScenario.archived);
+    });
+
+    test('notification and recurring payment mutations persist', () {
+      final state = MvpAppState();
+      state.markNotificationRead(0);
+      state.recordCouncilTax();
+
+      expect(state.notifications.first.read, isTrue);
+      expect(state.councilTaxPaid, isTrue);
+      expect(state.successTitle, 'Payment recorded');
+    });
+
+    testWidgets('member is redirected away from an admin-only deep link', (tester) async {
+      await tester.pumpWidget(const HouselyApp(initialLocation: '/state-lab'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Member'));
+      await tester.pumpAndSettle();
+      final router = GoRouter.of(tester.element(find.byType(StateLabScreen)));
+      router.go('/invite-person');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Access restricted'), findsOneWidget);
+    });
+  });
+
   group('Complete MVP interface architecture', () {
     test('every catalogue screen has a unique id and route', () {
       expect(mvpScreenCatalog.length, greaterThanOrEqualTo(70));
@@ -497,10 +591,10 @@ void main() {
     ) async {
       await _claimCreatorAndReachHome(tester);
 
-      expect(find.text('Set up your Home'), findsOneWidget);
+      expect(find.text('Make George Street Flat ready'), findsOneWidget);
       expect(find.text('Add your rent'), findsOneWidget);
       expect(find.text('Add recurring payments'), findsOneWidget);
-      expect(find.text('Connect your household'), findsOneWidget);
+      expect(find.text('Protect your move-in'), findsOneWidget);
 
       expect(find.text('Your tenancy status is confirmed'), findsNothing);
       expect(find.text('Review people in your tenancy'), findsNothing);
@@ -563,7 +657,7 @@ void main() {
       await tester.tap(createWithoutVerification);
       await tester.pumpAndSettle();
 
-      expect(find.text('Set up your Home'), findsOneWidget);
+      expect(find.text('Make George Street Flat ready'), findsOneWidget);
     });
 
     testWidgets('other detected names remain available after creator claim', (
@@ -581,156 +675,39 @@ void main() {
 
       expect(find.text('Alex Morgan'), findsOneWidget);
       expect(find.text('Meera Thomas'), findsOneWidget);
-      expect(find.text('Named on tenancy · Unclaimed'), findsNWidgets(2));
+      expect(find.text('Not joined'), findsNWidgets(2));
     });
   });
 
-  group('First Home progressive setup', () {
-    testWidgets('first Home is usable before setup is complete', (
-      tester,
-    ) async {
+  group('Canonical adaptive Home', () {
+    testWidgets('normal entry uses the adaptive admin Home', (tester) async {
       await tester.pumpWidget(const HouselyApp(initialLocation: '/home'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Welcome home'), findsOneWidget);
-      expect(find.text('Set up your Home'), findsOneWidget);
-
-      expect(find.text('Add your rent'), findsOneWidget);
-      expect(find.text('Add recurring payments'), findsOneWidget);
-      expect(find.text('Connect your household'), findsOneWidget);
-      expect(find.text('Protect your move-in'), findsOneWidget);
-
+      expect(find.text('August at Home'), findsOneWidget);
+      expect(find.text('household commitments'), findsOneWidget);
       expect(find.text('Split'), findsOneWidget);
       expect(find.text('Vault'), findsOneWidget);
       expect(find.text('Stuff'), findsOneWidget);
       expect(find.text('You'), findsOneWidget);
     });
 
-    testWidgets('setup card can be dismissed without blocking Home', (
-      tester,
-    ) async {
-      await tester.pumpWidget(const HouselyApp(initialLocation: '/home'));
+    testWidgets('legacy Home preview redirects to canonical Home', (tester) async {
+      await tester.pumpWidget(const HouselyApp(initialLocation: '/home-preview'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Set up your Home'), findsOneWidget);
-
-      // The Home itself must remain immediately usable.
-      expect(find.text('Split'), findsOneWidget);
-      expect(find.text('Vault'), findsOneWidget);
-      expect(find.text('Stuff'), findsOneWidget);
-      expect(find.text('You'), findsOneWidget);
-
-      final later = find.widgetWithText(
-        HouselyButton,
-        'I’ll finish this later',
-      );
-
-      expect(later, findsOneWidget);
-    });
-    testWidgets('rent setup saves and updates the Home snapshot', (
-      tester,
-    ) async {
-      await tester.pumpWidget(const HouselyApp(initialLocation: '/home'));
-      await tester.pumpAndSettle();
-
-      final rent = find.text('Add your rent');
-      await tester.ensureVisible(rent);
-      await tester.tap(rent);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Monthly rent'), findsOneWidget);
-
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Monthly rent'),
-        '850',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Due day of month'),
-        '1',
-      );
-
-      tester.testTextInput.hide();
-      await tester.pumpAndSettle();
-
-      final saveRent = find.text('Save rent');
-      await tester.ensureVisible(saveRent);
-      await tester.tap(saveRent);
-      await tester.pumpAndSettle();
-
-      expect(find.text('£850.00'), findsWidgets);
-      expect(find.text('Rent added'), findsOneWidget);
+      expect(find.text('August at Home'), findsOneWidget);
+      expect(find.text('household commitments'), findsOneWidget);
     });
 
-    testWidgets('recurring payment saves and updates Home snapshot', (
-      tester,
-    ) async {
-      await tester.pumpWidget(const HouselyApp(initialLocation: '/home'));
-      await tester.pumpAndSettle();
-
-      final recurring = find.text('Add recurring payments');
-      await tester.ensureVisible(recurring);
-      await tester.tap(recurring);
-      await tester.pumpAndSettle();
-
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Payment name'),
-        'Council tax',
-      );
-
-      await tester.enterText(find.widgetWithText(TextField, 'Amount'), '165');
-
-      tester.testTextInput.hide();
-      await tester.pumpAndSettle();
-
-      final save = find.text('Save recurring payment');
-      await tester.ensureVisible(save);
-      await tester.tap(save);
-      await tester.pumpAndSettle();
-
-      expect(find.text('£165.00'), findsWidgets);
-      expect(find.text('Recurring costs added'), findsOneWidget);
-    });
-
-    testWidgets('move-in setup marks protection as started', (tester) async {
-      await tester.pumpWidget(const HouselyApp(initialLocation: '/home'));
-      await tester.pumpAndSettle();
-
-      final protect = find.text('Protect your move-in');
-      final protectTapTarget = find
-          .ancestor(of: protect, matching: find.byType(InkWell))
-          .first;
-
-      await tester.scrollUntilVisible(
-        protectTapTarget,
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(protectTapTarget);
-      await tester.pumpAndSettle();
-
-      expect(find.text('No evidence captured yet'), findsOneWidget);
-
-      final start = find.text('Start move-in protection');
-      await tester.ensureVisible(start);
-      await tester.pumpAndSettle();
-      await tester.tap(start);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Move-in protection started'), findsOneWidget);
-    });
-
-    testWidgets('household setup opens post-onboarding management', (
-      tester,
-    ) async {
+    testWidgets('creator enters the adaptive setup variation', (tester) async {
       await _claimCreatorAndReachHome(tester);
 
-      final connect = find.text('Connect your household');
-      await tester.ensureVisible(connect);
-      await tester.tap(connect);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Manage your household'), findsOneWidget);
+      expect(find.text('Make George Street Flat ready'), findsOneWidget);
+      expect(find.text('Tenancy connected'), findsOneWidget);
+      expect(find.text('Add your rent'), findsOneWidget);
+      expect(find.text('Add recurring payments'), findsOneWidget);
+      expect(find.text('Protect your move-in'), findsOneWidget);
     });
   });
 

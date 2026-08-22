@@ -37,16 +37,15 @@ class HomeSetupState extends ChangeNotifier {
     if (tenancyComplete) count++;
     if (hasRent) count++;
     if (hasRecurringCosts) count++;
-    if (householdOpened) count++;
     if (moveInProtectionStarted) count++;
     return count;
   }
 
   double progress({required bool tenancyComplete}) =>
-      completedSteps(tenancyComplete: tenancyComplete) / 5;
+      completedSteps(tenancyComplete: tenancyComplete) / 4;
 
   bool isComplete({required bool tenancyComplete}) =>
-      completedSteps(tenancyComplete: tenancyComplete) == 5;
+      completedSteps(tenancyComplete: tenancyComplete) == 4;
 
   void saveRent({required int amountPence, required int dueDay}) {
     rentPence = amountPence;

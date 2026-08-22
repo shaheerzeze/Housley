@@ -2,20 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/housely_repository.dart';
+import '../data/mvp_app_state.dart';
 import '../design_system/components/components.dart';
 import '../design_system/theme/housely_tokens.dart';
 import '../features/shared/feature_scaffold.dart';
 import '../features/home/home_state.dart';
 
 class StateLabScreen extends StatelessWidget {
-  const StateLabScreen({required this.repository, required this.homeState, super.key});
+  const StateLabScreen({required this.repository, required this.homeState, required this.appState, super.key});
 
   final HouselyRepository repository;
   final HomeFeatureState homeState;
+  final MvpAppState appState;
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: Listenable.merge([repository, homeState]),
+    listenable: Listenable.merge([repository, homeState, appState]),
     builder: (context, _) => FeatureScaffold(
       title: 'State lab',
       subtitle: 'Phase 10 · Mock data  /  Phase 11 · Required states',
@@ -27,6 +29,19 @@ class StateLabScreen extends StatelessWidget {
             title: 'Local prototype controls',
             message:
                 'These choices only change this session. No household data is sent or deleted.',
+          ),
+          const SizedBox(height: HouselySpace.xl),
+          Text('Current role', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: HouselySpace.xs),
+          Text(
+            'Role controls both the Home variation and route-level permissions.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: HouselySpace.md),
+          HouselySegmentedControl<HouselyRole>(
+            segments: {for (final role in HouselyRole.values) role: role.label},
+            selected: appState.role,
+            onChanged: appState.selectRole,
           ),
           const SizedBox(height: HouselySpace.xl),
           Text('Home variation', style: Theme.of(context).textTheme.titleLarge),
@@ -42,7 +57,7 @@ class StateLabScreen extends StatelessWidget {
               selected: homeState.scenario == scenario,
               onTap: () {
                 repository.selectScenario(DemoScenario.populated);
-                homeState.selectScenario(scenario);
+                appState.selectHomeScenario(scenario);
               },
             ),
             const SizedBox(height: HouselySpace.sm),
@@ -62,7 +77,10 @@ class StateLabScreen extends StatelessWidget {
             _ScenarioTile(
               scenario: scenario,
               selected: repository.scenario == scenario,
-              onTap: () => repository.selectScenario(scenario),
+              onTap: () {
+                repository.selectScenario(scenario);
+                appState.setOnline(scenario != DemoScenario.offline);
+              },
             ),
             const SizedBox(height: HouselySpace.sm),
           ],
@@ -85,7 +103,7 @@ class StateLabScreen extends StatelessWidget {
             style: HouselyButtonStyle.secondary,
             onPressed: () {
               repository.reset();
-              homeState.selectScenario(HomeScenario.activeAdmin);
+              appState.selectHomeScenario(HomeScenario.activeAdmin);
             },
           ),
         ],
