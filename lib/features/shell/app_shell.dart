@@ -23,6 +23,7 @@ class HouselyAppShell extends StatelessWidget {
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 840;
         return Scaffold(
+          extendBody: !wide,
           body: wide
               ? SafeArea(
                   child: Row(

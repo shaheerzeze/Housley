@@ -112,14 +112,12 @@ class HouselyBottomDock extends StatelessWidget {
   };
 
   @override
-  Widget build(BuildContext context) => ColoredBox(
-    color: HouselyPalette.canvas,
-    child: SafeArea(
-      top: false,
-      minimum: const EdgeInsets.only(bottom: 14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: DecoratedBox(
+  Widget build(BuildContext context) => SafeArea(
+    top: false,
+    minimum: const EdgeInsets.only(bottom: 12),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(32),
             boxShadow: [
@@ -160,7 +158,6 @@ class HouselyBottomDock extends StatelessWidget {
               ),
             ),
           ),
-        ),
       ),
     ),
   );

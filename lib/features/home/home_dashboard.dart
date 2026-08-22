@@ -42,7 +42,7 @@ class _HomeCommandScreenState extends State<HomeCommandScreen> {
                           HouselySize.phoneGutter,
                           HouselySpace.xl,
                           HouselySize.phoneGutter,
-                          112,
+                          132,
                         ),
                         children: _content(context, model),
                       ),
@@ -96,13 +96,11 @@ class _HomeCommandScreenState extends State<HomeCommandScreen> {
       ],
       if (model.priority != null) ...[
         _PriorityCard(priority: model.priority!),
-        const SizedBox(height: HouselySpace.section),
+        const SizedBox(height: HouselySpace.xxl),
       ],
       if (model.summary != null) ...[
-        _SectionTitle(title: model.summary!.sectionTitle),
-        const SizedBox(height: HouselySpace.sm),
         _MonthlySummary(summary: model.summary!),
-        const SizedBox(height: HouselySpace.section),
+        const SizedBox(height: HouselySpace.xxl),
       ],
       if (model.attention.isNotEmpty) ...[
         _SectionTitle(
@@ -307,11 +305,52 @@ class _MonthlySummary extends StatelessWidget {
   Widget build(BuildContext context) => InkWell(
     borderRadius: BorderRadius.circular(HouselyRadius.feature),
     onTap: () => context.go('/split'),
-    child: _TonalCard(
-      color: HouselyPalette.skySoft,
+    child: Container(
+      padding: const EdgeInsets.all(HouselySpace.xl),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [HouselyPalette.skySoft, HouselyPalette.violetSoft],
+        ),
+        borderRadius: BorderRadius.circular(HouselyRadius.feature),
+        boxShadow: [
+          BoxShadow(
+            color: HouselyPalette.sky.withValues(alpha: .08),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  summary.sectionTitle,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: HouselyPalette.surface.withValues(alpha: .72),
+                  borderRadius: BorderRadius.circular(HouselyRadius.pill),
+                ),
+                child: Text(
+                  summary.value == 1 ? 'Up to date' : 'This month',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: summary.value == 1
+                        ? HouselyPalette.mint
+                        : HouselyPalette.sky,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: HouselySpace.lg),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -319,7 +358,13 @@ class _MonthlySummary extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(summary.amount, style: Theme.of(context).textTheme.displayLarge),
+                    Text(
+                      summary.amount,
+                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                        fontSize: 34,
+                        letterSpacing: -1.1,
+                      ),
+                    ),
                     const SizedBox(height: HouselySpace.xxs),
                     Text(summary.label, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: HouselyPalette.textSecondary)),
                   ],
@@ -328,14 +373,7 @@ class _MonthlySummary extends StatelessWidget {
               _ProgressRing(value: summary.value),
             ],
           ),
-          const SizedBox(height: HouselySpace.lg),
-          Row(
-            children: [
-              Expanded(child: Text(summary.left, style: Theme.of(context).textTheme.bodyMedium)),
-              Text(summary.right, style: Theme.of(context).textTheme.bodyMedium),
-            ],
-          ),
-          const SizedBox(height: HouselySpace.sm),
+          const SizedBox(height: HouselySpace.md),
           ClipRRect(
             borderRadius: BorderRadius.circular(HouselyRadius.pill),
             child: LinearProgressIndicator(
@@ -345,14 +383,31 @@ class _MonthlySummary extends StatelessWidget {
               valueColor: const AlwaysStoppedAnimation(HouselyPalette.sky),
             ),
           ),
-          const SizedBox(height: HouselySpace.md),
+          const SizedBox(height: HouselySpace.sm),
           Row(
             children: [
-              const Icon(Icons.calendar_month_outlined, size: 18, color: HouselyPalette.sky),
-              const SizedBox(width: HouselySpace.xs),
-              Expanded(child: Text(summary.next, style: Theme.of(context).textTheme.bodyMedium)),
-              const Icon(Icons.chevron_right_rounded, size: 20),
+              Expanded(child: Text(summary.left, style: Theme.of(context).textTheme.bodyMedium)),
+              Text(summary.right, style: Theme.of(context).textTheme.bodyMedium),
             ],
+          ),
+          const SizedBox(height: HouselySpace.lg),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: HouselySpace.sm,
+              vertical: HouselySpace.sm,
+            ),
+            decoration: BoxDecoration(
+              color: HouselyPalette.surface.withValues(alpha: .68),
+              borderRadius: BorderRadius.circular(HouselyRadius.control),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_month_outlined, size: 18, color: HouselyPalette.sky),
+                const SizedBox(width: HouselySpace.xs),
+                Expanded(child: Text(summary.next, style: Theme.of(context).textTheme.bodyMedium)),
+                const Icon(Icons.chevron_right_rounded, size: 20),
+              ],
+            ),
           ),
         ],
       ),
@@ -366,7 +421,7 @@ class _ProgressRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox.square(
-    dimension: 64,
+    dimension: 58,
     child: CustomPaint(
       painter: _RingPainter(value),
       child: Center(child: Text('${(value * 100).round()}%', style: Theme.of(context).textTheme.titleMedium)),
@@ -458,19 +513,24 @@ class _QuickView extends StatelessWidget {
   final _HomeModel model;
 
   @override
-  Widget build(BuildContext context) => GridView.count(
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    crossAxisCount: 2,
-    crossAxisSpacing: HouselySpace.sm,
-    mainAxisSpacing: HouselySpace.sm,
-    childAspectRatio: 1.52,
-    children: [
-      _QuickTile(title: 'Money', detail: model.moneyDetail, icon: Icons.payments_outlined, color: HouselyPalette.skySoft, route: '/split'),
-      const _QuickTile(title: 'Household', detail: '3 people · 1 pending', icon: Icons.people_outline_rounded, color: HouselyPalette.mintSoft, route: '/household'),
-      const _QuickTile(title: 'Documents', detail: '6 shared records', icon: Icons.folder_outlined, color: HouselyPalette.lilacSoft, route: '/vault'),
-      const _QuickTile(title: 'Stuff', detail: '19 recorded items', icon: Icons.chair_outlined, color: HouselyPalette.apricot, route: '/stuff'),
-    ],
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final fourAcross = constraints.maxWidth >= 520;
+      return GridView.count(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: fourAcross ? 4 : 2,
+        crossAxisSpacing: HouselySpace.sm,
+        mainAxisSpacing: HouselySpace.sm,
+        childAspectRatio: fourAcross ? .96 : 1.72,
+        children: [
+          _QuickTile(title: 'Money', detail: model.moneyDetail, icon: Icons.payments_outlined, color: HouselyPalette.skySoft, route: '/split'),
+          const _QuickTile(title: 'Household', detail: '3 people · 1 pending', icon: Icons.people_outline_rounded, color: HouselyPalette.mintSoft, route: '/household'),
+          const _QuickTile(title: 'Documents', detail: '6 shared records', icon: Icons.folder_outlined, color: HouselyPalette.lilacSoft, route: '/vault'),
+          const _QuickTile(title: 'Stuff', detail: '19 recorded items', icon: Icons.chair_outlined, color: HouselyPalette.apricot, route: '/stuff'),
+        ],
+      );
+    },
   );
 }
 
@@ -490,12 +550,20 @@ class _QuickTile extends StatelessWidget {
     child: InkWell(
       onTap: () => context.go(route),
       child: Padding(
-        padding: const EdgeInsets.all(HouselySpace.md),
+        padding: const EdgeInsets.all(HouselySpace.sm),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, size: HouselySize.icon),
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: HouselyPalette.surface.withValues(alpha: .7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 20),
+            ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -561,7 +629,13 @@ class _TonalCard extends StatelessWidget {
     decoration: BoxDecoration(
       color: color,
       borderRadius: BorderRadius.circular(HouselyRadius.feature),
-      border: Border.all(color: HouselyPalette.divider),
+      boxShadow: [
+        BoxShadow(
+          color: HouselyPalette.textPrimary.withValues(alpha: .045),
+          blurRadius: 24,
+          offset: const Offset(0, 10),
+        ),
+      ],
     ),
     child: child,
   );
