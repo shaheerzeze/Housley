@@ -116,7 +116,7 @@ class _HomeCommandScreenState extends State<HomeCommandScreen> {
         _SectionTitle(
           title: 'Household',
           action: model.admin ? 'Manage' : 'View',
-          onAction: () => context.push('/household'),
+          onAction: () => context.push('/household-overview'),
         ),
         const SizedBox(height: HouselySpace.sm),
         _HouseholdPreview(admin: model.admin),
@@ -130,7 +130,7 @@ class _HomeCommandScreenState extends State<HomeCommandScreen> {
       const SizedBox(height: HouselySpace.sm),
       _QuickView(model: model),
       const SizedBox(height: HouselySpace.section),
-      const _SectionTitle(title: 'Recent activity', action: 'View all'),
+      _SectionTitle(title: 'Recent activity', action: 'View all', onAction: () => context.push('/timeline')),
       const SizedBox(height: HouselySpace.sm),
       _ActivityList(scenario: model.scenario),
     ];
@@ -525,7 +525,7 @@ class _QuickView extends StatelessWidget {
         childAspectRatio: fourAcross ? .96 : 1.72,
         children: [
           _QuickTile(title: 'Money', detail: model.moneyDetail, icon: Icons.payments_outlined, color: HouselyPalette.skySoft, route: '/split'),
-          const _QuickTile(title: 'Household', detail: '3 people · 1 pending', icon: Icons.people_outline_rounded, color: HouselyPalette.mintSoft, route: '/household'),
+          const _QuickTile(title: 'Household', detail: '3 people · 1 pending', icon: Icons.people_outline_rounded, color: HouselyPalette.mintSoft, route: '/household-overview'),
           const _QuickTile(title: 'Documents', detail: '6 shared records', icon: Icons.folder_outlined, color: HouselyPalette.lilacSoft, route: '/vault'),
           const _QuickTile(title: 'Stuff', detail: '19 recorded items', icon: Icons.chair_outlined, color: HouselyPalette.apricot, route: '/stuff'),
         ],
@@ -690,7 +690,7 @@ class _AddMenu extends StatelessWidget {
       ('Expense', Icons.receipt_long_outlined, '/add-expense'),
       ('Document', Icons.upload_file_outlined, '/upload-document'),
       ('Belonging', Icons.chair_outlined, '/add-item'),
-      if (admin) ('Person', Icons.person_outline_rounded, '/household'),
+      if (admin) ('Person', Icons.person_outline_rounded, '/invite-person-type'),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -765,7 +765,7 @@ class _HomeModel {
   factory _HomeModel.forScenario(HomeScenario scenario) {
     const householdSummary = _Summary('August at Home', '£1,485.00', 'household commitments', '£1,024.65 recorded', '£460.35 remaining', 'Next · Council tax £165 · 20 Aug', .69);
     const memberSummary = _Summary('Your August', '£425.00', 'your rent share of £850', '£212.50 recorded', '£212.50 left', 'Next · Rent share · 20 Aug', .5);
-    final memberPending = AttentionItem('member', 'Alex has not joined yet', 'Named on tenancy · Not joined', '/household');
+    final memberPending = AttentionItem('member', 'Alex has not joined yet', 'Named on tenancy · Not joined', '/person-detail');
     final billReview = AttentionItem('bill', 'Energy bill needs review', 'Household · Action required', '/expense-detail');
 
     return switch (scenario) {

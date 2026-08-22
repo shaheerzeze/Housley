@@ -107,6 +107,26 @@ class _StuffOverviewScreenState extends State<StuffOverviewScreen> {
                         ),
                       )
                       .toList(),
+                  ),
+              ),
+              const SizedBox(height: HouselySpace.xl),
+              HouselySection(
+                title: 'Inventory tools',
+                child: HouselyGroupedList(
+                  children: [
+                    HouselyRecordRow(
+                      title: 'Search inventory',
+                      subtitle: 'Find by owner, room or warranty',
+                      icon: Icons.search_rounded,
+                      onTap: () => context.push('/inventory-search'),
+                    ),
+                    HouselyRecordRow(
+                      title: 'Scan a barcode',
+                      subtitle: 'Add supported items more quickly',
+                      icon: Icons.qr_code_scanner_rounded,
+                      onTap: () => context.push('/scan-item'),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -335,17 +355,27 @@ class MoreMenuScreen extends StatelessWidget {
               HouselyRecordRow(
                 title: 'Your household',
                 icon: Icons.people_outline_rounded,
-                onTap: () => context.push('/household'),
+                onTap: () => context.push('/household-overview'),
               ),
               HouselyRecordRow(
                 title: 'Home details',
                 icon: Icons.home_work_outlined,
-                onTap: () {},
+                onTap: () => context.push('/your-homes'),
               ),
               HouselyRecordRow(
                 title: 'Changes',
                 icon: Icons.compare_arrows_rounded,
-                onTap: () => context.push('/changes'),
+                onTap: () => context.push('/changes-overview'),
+              ),
+              HouselyRecordRow(
+                title: 'Tasks',
+                icon: Icons.checklist_rounded,
+                onTap: () => context.push('/tasks'),
+              ),
+              HouselyRecordRow(
+                title: 'Home timeline',
+                icon: Icons.history_rounded,
+                onTap: () => context.push('/timeline'),
               ),
             ],
           ),
@@ -358,7 +388,7 @@ class MoreMenuScreen extends StatelessWidget {
               HouselyRecordRow(
                 title: 'Recurring costs',
                 icon: Icons.repeat_rounded,
-                onTap: () {},
+                onTap: () => context.push('/recurring-payments'),
               ),
               HouselyRecordRow(
                 title: 'Private groups',
@@ -368,7 +398,7 @@ class MoreMenuScreen extends StatelessWidget {
               HouselyRecordRow(
                 title: 'Settings',
                 icon: Icons.settings_outlined,
-                onTap: () => context.go('/you'),
+                onTap: () => context.push('/app-settings'),
               ),
             ],
           ),
@@ -378,6 +408,12 @@ class MoreMenuScreen extends StatelessWidget {
           title: 'Prototype',
           child: HouselyGroupedList(
             children: [
+              HouselyRecordRow(
+                title: 'Complete MVP screen library',
+                subtitle: 'Review every route-level interface by product area',
+                icon: Icons.view_quilt_outlined,
+                onTap: () => context.push('/mvp-screens'),
+              ),
               HouselyRecordRow(
                 title: 'State lab',
                 subtitle: 'Mock data, loading, empty and error previews',
@@ -470,22 +506,28 @@ class _AccountScreenState extends State<AccountScreen> {
             HouselyGroupedList(
               children: [
                 HouselyRecordRow(
+                  title: 'Your Homes',
+                  subtitle: 'Current, pending and archived',
+                  icon: Icons.home_work_outlined,
+                  onTap: () => context.push('/your-homes'),
+                ),
+                HouselyRecordRow(
                   title: 'Profile',
                   subtitle: 'Name and contact details',
                   icon: Icons.person_outline_rounded,
-                  onTap: () {},
+                  onTap: () => context.push('/profile'),
                 ),
                 HouselyRecordRow(
                   title: 'Security',
                   subtitle: 'Password and signed-in devices',
                   icon: Icons.shield_outlined,
-                  onTap: () {},
+                  onTap: () => context.push('/security'),
                 ),
                 HouselyRecordRow(
                   title: 'Privacy',
                   subtitle: 'Visibility and analytics consent',
                   icon: Icons.lock_outline_rounded,
-                  onTap: () {},
+                  onTap: () => context.push('/privacy-centre'),
                 ),
                 ListTile(
                   minTileHeight: 64,
@@ -498,15 +540,27 @@ class _AccountScreenState extends State<AccountScreen> {
                   ),
                 ),
                 HouselyRecordRow(
+                  title: 'Notification settings',
+                  subtitle: 'Choose which reminders reach you',
+                  icon: Icons.tune_rounded,
+                  onTap: () => context.push('/notification-settings'),
+                ),
+                HouselyRecordRow(
+                  title: 'Accessibility',
+                  subtitle: 'Text, motion, contrast and labels',
+                  icon: Icons.accessibility_new_rounded,
+                  onTap: () => context.push('/accessibility-settings'),
+                ),
+                HouselyRecordRow(
                   title: 'Export your data',
                   subtitle: 'Prepare a private download',
                   icon: Icons.download_outlined,
-                  onTap: () {},
+                  onTap: () => context.push('/data-controls'),
                 ),
                 HouselyRecordRow(
                   title: 'Help and support',
                   icon: Icons.help_outline_rounded,
-                  onTap: () {},
+                  onTap: () => context.push('/help'),
                 ),
               ],
             ),
@@ -520,14 +574,7 @@ class _AccountScreenState extends State<AccountScreen> {
             HouselyButton(
               label: 'Delete account',
               style: HouselyButtonStyle.destructive,
-              onPressed: () => showHouselyConfirmation(
-                context,
-                title: 'Delete your account?',
-                message:
-                    'Sensitive actions require reauthentication before deletion can begin.',
-                confirmLabel: 'Continue to reauthenticate',
-                destructive: true,
-              ),
+              onPressed: () => context.push('/delete-account'),
             ),
           ],
         ),

@@ -97,6 +97,26 @@ class VaultOverviewScreen extends StatelessWidget {
                         ),
                       )
                       .toList(),
+                  ),
+              ),
+              const SizedBox(height: HouselySpace.xl),
+              HouselySection(
+                title: 'Browse securely',
+                child: HouselyGroupedList(
+                  children: [
+                    HouselyRecordRow(
+                      title: 'All Vault folders',
+                      subtitle: 'Personal, household and tenancy records',
+                      icon: Icons.folder_outlined,
+                      onTap: () => context.push('/vault-folders'),
+                    ),
+                    HouselyRecordRow(
+                      title: 'Document privacy',
+                      subtitle: 'Review who can access shared files',
+                      icon: Icons.lock_outline_rounded,
+                      onTap: () => context.push('/document-privacy'),
+                    ),
+                  ],
                 ),
               ),
             ],

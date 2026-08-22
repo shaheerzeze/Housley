@@ -14,6 +14,8 @@ import '../features/home/home_entry_screen.dart';
 import '../features/home/home_screens.dart';
 import '../features/home/home_setup_state.dart';
 import '../features/home/home_state.dart';
+import '../features/mvp/mvp_catalog.dart';
+import '../features/mvp/mvp_screens.dart';
 import '../features/shell/app_shell.dart';
 import '../features/split/split_screens.dart';
 import '../features/split/split_state.dart';
@@ -338,6 +340,16 @@ GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
         path: '/accessibility-review',
         builder: (context, state) =>
             AccessibilityReviewScreen(repository: repository),
+      ),
+      GoRoute(
+        path: '/mvp-screens',
+        builder: (context, state) => const MvpCatalogScreen(),
+      ),
+      ...mvpScreenCatalog.map(
+        (screen) => GoRoute(
+          path: screen.path,
+          builder: (context, state) => MvpScreen(spec: screen),
+        ),
       ),
 
       StatefulShellRoute.indexedStack(

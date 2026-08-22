@@ -4,6 +4,7 @@ import 'package:housely/app/housely_app.dart';
 import 'package:housely/design_system/components/buttons.dart';
 import 'package:housely/features/access/access_draft.dart';
 import 'package:housely/features/access/household_member.dart';
+import 'package:housely/features/mvp/mvp_catalog.dart';
 
 Future<void> _finishStreamlinedTenancyProcessing(WidgetTester tester) async {
   await tester.pump();
@@ -130,6 +131,53 @@ Future<void> _lookupAlex(WidgetTester tester, {required String phone}) async {
 }
 
 void main() {
+  group('Complete MVP interface architecture', () {
+    test('every catalogue screen has a unique id and route', () {
+      expect(mvpScreenCatalog.length, greaterThanOrEqualTo(70));
+      expect(
+        mvpScreenCatalog.map((screen) => screen.id).toSet().length,
+        mvpScreenCatalog.length,
+      );
+      expect(
+        mvpScreenCatalog.map((screen) => screen.path).toSet().length,
+        mvpScreenCatalog.length,
+      );
+      expect(mvpScreenCatalog.every((screen) => screen.path.startsWith('/')), isTrue);
+      expect(mvpScreenCatalog.every((screen) => screen.title.isNotEmpty), isTrue);
+      expect(mvpScreenCatalog.every((screen) => screen.subtitle.isNotEmpty), isTrue);
+    });
+
+    testWidgets('screen library exposes all MVP product areas', (tester) async {
+      await tester.pumpWidget(const HouselyApp(initialLocation: '/mvp-screens'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('MVP screen library'), findsOneWidget);
+      expect(find.text('Household'), findsOneWidget);
+      expect(find.text('Split'), findsOneWidget);
+      expect(find.text('Move-in protection'), findsOneWidget);
+      expect(find.text('Home changes'), findsOneWidget);
+      expect(find.text('Move out'), findsOneWidget);
+    });
+
+    testWidgets('privacy centre explains protected household areas', (tester) async {
+      await tester.pumpWidget(const HouselyApp(initialLocation: '/privacy-centre'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Privacy centre'), findsOneWidget);
+      expect(find.text('Private by default'), findsOneWidget);
+      expect(find.textContaining('Landlords cannot see private balances'), findsOneWidget);
+    });
+
+    testWidgets('move-out flow has an evidence-first next action', (tester) async {
+      await tester.pumpWidget(const HouselyApp(initialLocation: '/move-out-overview'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Your move-out'), findsOneWidget);
+      expect(find.text('Continue move-out'), findsOneWidget);
+      expect(find.text('Move-in record protected'), findsOneWidget);
+    });
+  });
+
   group('Core shell and existing feature regression', () {
     testWidgets('accessibility review exposes the Phase 13 checks', (
       tester,

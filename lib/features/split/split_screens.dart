@@ -109,6 +109,32 @@ class _SplitOverviewScreenState extends State<SplitOverviewScreen> {
                   style: HouselyButtonStyle.secondary,
                   onPressed: () => context.push('/record-settlement'),
                 ),
+                const SizedBox(height: HouselySpace.xl),
+                HouselySection(
+                  title: 'Manage money',
+                  child: HouselyGroupedList(
+                    children: [
+                      HouselyRecordRow(
+                        title: 'Your balance',
+                        subtitle: 'See who you owe and who owes you',
+                        icon: Icons.account_balance_wallet_outlined,
+                        onTap: () => context.push('/balance-detail'),
+                      ),
+                      HouselyRecordRow(
+                        title: 'Recurring payments',
+                        subtitle: 'Rent, council tax, energy and more',
+                        icon: Icons.event_repeat_outlined,
+                        onTap: () => context.push('/recurring-payments'),
+                      ),
+                      HouselyRecordRow(
+                        title: 'Settlement history',
+                        subtitle: 'Payments recorded by household members',
+                        icon: Icons.history_rounded,
+                        onTap: () => context.push('/settlement-history'),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),

@@ -74,6 +74,13 @@ class StateLabScreen extends StatelessWidget {
           ),
           const SizedBox(height: HouselySpace.sm),
           HouselyButton(
+            label: 'Open complete MVP screen library',
+            leadingIcon: Icons.view_quilt_outlined,
+            style: HouselyButtonStyle.secondary,
+            onPressed: () => context.push('/mvp-screens'),
+          ),
+          const SizedBox(height: HouselySpace.sm),
+          HouselyButton(
             label: 'Reset prototype data',
             style: HouselyButtonStyle.secondary,
             onPressed: () {

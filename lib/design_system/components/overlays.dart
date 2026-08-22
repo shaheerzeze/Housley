@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../theme/housely_tokens.dart';
 import 'buttons.dart';
@@ -152,22 +153,34 @@ Future<void> showHouselyMoreSheet(BuildContext context) =>
                 HouselyRecordRow(
                   title: 'Your household',
                   icon: Icons.people_outline_rounded,
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/household-overview');
+                  },
                 ),
                 HouselyRecordRow(
                   title: 'Changes',
                   icon: Icons.compare_arrows_rounded,
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/changes-overview');
+                  },
                 ),
                 HouselyRecordRow(
                   title: 'Private groups',
                   icon: Icons.lock_outline_rounded,
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/split-groups');
+                  },
                 ),
                 HouselyRecordRow(
                   title: 'Settings',
                   icon: Icons.settings_outlined,
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/app-settings');
+                  },
                 ),
               ],
             ),
