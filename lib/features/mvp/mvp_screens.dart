@@ -493,7 +493,7 @@ class _FormContent extends StatelessWidget {
         const SizedBox(height: 16),
         HouselySelectionTile(title: 'Recommended', subtitle: 'Best fit for this Home', icon: Icons.auto_awesome_outlined, selected: true, onTap: () => Navigator.pop(context)),
         const SizedBox(height: 8),
-        HouselySelectionTile(title: 'Choose another option', icon: Icons.tune_rounded, onTap: () => Navigator.pop(context)),
+        HouselySelectionTile(title: 'Choose another option', icon: Icons.tune_rounded, selected: false, onTap: () => Navigator.pop(context)),
       ]),
     )),
   );
