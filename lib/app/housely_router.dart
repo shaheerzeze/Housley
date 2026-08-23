@@ -29,8 +29,11 @@ final _vaultNavigatorKey = GlobalKey<NavigatorState>();
 final _stuffNavigatorKey = GlobalKey<NavigatorState>();
 final _youNavigatorKey = GlobalKey<NavigatorState>();
 
-GoRouter createHouselyRouter({String initialLocation = '/welcome'}) {
-  final draft = AccessDraft();
+GoRouter createHouselyRouter({
+  String initialLocation = '/welcome',
+  AccessDraft? accessDraft,
+}) {
+  final draft = accessDraft ?? AccessDraft();
   final joinHomeState = JoinHomeState();
   final appState = MvpAppState();
   final homeState = appState.home;
