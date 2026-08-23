@@ -20,8 +20,12 @@ Future<void> _finishStreamlinedTenancyProcessing(WidgetTester tester) async {
 }
 
 Future<void> _reachTenancyNameChoice(WidgetTester tester) async {
+  final draft = AccessDraft()..homeName = 'George Street Flat';
   await tester.pumpWidget(
-    const HouselyApp(initialLocation: '/tenancy-processing'),
+    HouselyApp(
+      initialLocation: '/tenancy-processing',
+      accessDraft: draft,
+    ),
   );
 
   await _finishStreamlinedTenancyProcessing(tester);
@@ -56,12 +60,6 @@ Future<void> _claimCreatorAndReachHome(WidgetTester tester) async {
   await tester.tap(confirmButton);
   await tester.pumpAndSettle();
 
-  await tester.scrollUntilVisible(
-    find.text('Make George Street Flat ready'),
-    250,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tester.pumpAndSettle();
   expect(find.text('Make George Street Flat ready'), findsOneWidget);
 }
 
@@ -676,12 +674,6 @@ void main() {
       await tester.tap(createWithoutVerification);
       await tester.pumpAndSettle();
 
-      await tester.scrollUntilVisible(
-        find.text('Make George Street Flat ready'),
-        250,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
       expect(find.text('Make George Street Flat ready'), findsOneWidget);
     });
 
