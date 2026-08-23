@@ -56,6 +56,12 @@ Future<void> _claimCreatorAndReachHome(WidgetTester tester) async {
   await tester.tap(confirmButton);
   await tester.pumpAndSettle();
 
+  await tester.scrollUntilVisible(
+    find.text('Make George Street Flat ready'),
+    250,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.pumpAndSettle();
   expect(find.text('Make George Street Flat ready'), findsOneWidget);
 }
 
@@ -317,10 +323,23 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Home'), findsWidgets);
-      expect(find.text('Split'), findsOneWidget);
-      expect(find.text('Vault'), findsOneWidget);
-      expect(find.text('Stuff'), findsOneWidget);
-      expect(find.text('You'), findsOneWidget);
+      final navigation = find.byType(NavigationBar);
+      expect(
+        find.descendant(of: navigation, matching: find.text('Split')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: navigation, matching: find.text('Vault')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: navigation, matching: find.text('Stuff')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: navigation, matching: find.text('You')),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('Vault'));
       await tester.pumpAndSettle();
@@ -657,6 +676,12 @@ void main() {
       await tester.tap(createWithoutVerification);
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.text('Make George Street Flat ready'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       expect(find.text('Make George Street Flat ready'), findsOneWidget);
     });
 
@@ -688,7 +713,13 @@ void main() {
       expect(find.text('household commitments'), findsOneWidget);
       expect(find.text('Split'), findsOneWidget);
       expect(find.text('Vault'), findsOneWidget);
-      expect(find.text('Stuff'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Stuff'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('You'), findsOneWidget);
     });
 
@@ -973,20 +1004,24 @@ void main() {
       await tester.pumpWidget(const HouselyApp(initialLocation: '/state-lab'));
       await tester.pumpAndSettle();
 
-      await tester.scrollUntilVisible(
-        find.text('Active member'),
-        300,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.tap(find.text('Active member'));
-      await tester.scrollUntilVisible(
-        find.text('Preview on Home'),
-        500,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.tap(find.text('Preview on Home'));
+      final activeMember = find.text('Active member');
+      await tester.ensureVisible(activeMember);
+      await tester.pumpAndSettle();
+      await tester.tap(activeMember);
       await tester.pumpAndSettle();
 
+      final preview = find.text('Preview on Home');
+      await tester.ensureVisible(preview);
+      await tester.pumpAndSettle();
+      await tester.tap(preview);
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Your August'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       expect(find.text('Your August'), findsOneWidget);
       expect(find.text('your rent share of £850'), findsOneWidget);
       expect(find.text('Manage'), findsNothing);
@@ -996,20 +1031,24 @@ void main() {
       await tester.pumpWidget(const HouselyApp(initialLocation: '/state-lab'));
       await tester.pumpAndSettle();
 
-      await tester.scrollUntilVisible(
-        find.text('Household attention'),
-        300,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.tap(find.text('Household attention'));
-      await tester.scrollUntilVisible(
-        find.text('Preview on Home'),
-        500,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.tap(find.text('Preview on Home'));
+      final householdAttention = find.text('Household attention');
+      await tester.ensureVisible(householdAttention);
+      await tester.pumpAndSettle();
+      await tester.tap(householdAttention);
       await tester.pumpAndSettle();
 
+      final preview = find.text('Preview on Home');
+      await tester.ensureVisible(preview);
+      await tester.pumpAndSettle();
+      await tester.tap(preview);
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Home status'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       expect(find.text('Home status'), findsOneWidget);
       await tester.scrollUntilVisible(
         find.text('Alex has not joined yet'),
