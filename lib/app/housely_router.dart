@@ -11,6 +11,7 @@ import '../features/access/access_screens.dart';
 import '../features/access/join_home_screens.dart';
 import '../features/access/join_home_state.dart';
 import '../features/access/streamlined_create_home_flow.dart';
+import '../features/home/home_entry_screen.dart';
 import '../features/home/home_screens.dart';
 import '../features/home/home_setup_state.dart';
 import '../features/home/home_state.dart';
